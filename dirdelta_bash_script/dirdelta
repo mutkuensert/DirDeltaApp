@@ -1,0 +1,128 @@
+#!/bin/bash
+
+set -euo pipefail
+
+printPath() {
+    # Keep filenames containing terminal control characters on a single safe line.
+    if [[ "$1" == *[[:cntrl:]]* ]]; then
+        printf '%q' "$1"
+    else
+        printf '%s' "$1"
+    fi
+}
+
+printMissingEntry() {
+    local path=$1
+    local kind=$2
+    local displayPath=${path#"${sourceRoot%/}"/}
+
+    if [[ "$kind" == dir ]]; then
+        printf '  %s[DIR ]%s  ' "$directoryColor" "$resetColor"
+        printPath "$displayPath/"
+        missingDirs=$((missingDirs + 1))
+    else
+        printf '  %s[FILE]%s  ' "$fileColor" "$resetColor"
+        printPath "$displayPath"
+        missingFiles=$((missingFiles + 1))
+    fi
+    printf '\n'
+}
+
+listMissingEntries() {
+    local sourceDir=$1
+    local targetDir=$2
+    local isRoot=${3:-false}
+    local filePath relativePath
+    local hasFiles=false
+    local hasMatchingFile=false
+
+    if [[ "$isRoot" == false ]]; then
+        if [[ ! -d "$targetDir" ]]; then
+            printMissingEntry "$sourceDir" dir
+            return
+        fi
+
+        # Collapse only when none of this directory's regular files have a match.
+        while IFS= read -r -d '' filePath; do
+            hasFiles=true
+            relativePath=${filePath#"$sourceDir"/}
+            if [[ -e "$targetDir/$relativePath" ]]; then
+                hasMatchingFile=true
+                break
+            fi
+        done < <(find "$sourceDir" -type f -print0)
+
+        if [[ "$hasFiles" == true && "$hasMatchingFile" == false ]]; then
+            printMissingEntry "$sourceDir" dir
+            return
+        fi
+    fi
+
+    while IFS= read -r -d '' filePath; do
+        relativePath=${filePath##*/}
+        if [[ -d "$filePath" ]]; then
+            listMissingEntries "$filePath" "$targetDir/$relativePath"
+        elif [[ ! -e "$targetDir/$relativePath" ]]; then
+            printMissingEntry "$filePath" file
+        fi
+    done < <(find "$sourceDir" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) -print0)
+}
+
+reportMissingEntries() {
+    local sourceDir=$1
+    local targetDir=$2
+    # Bash locals remain visible to recursive listing and printing calls.
+    local missingFiles=0
+    local missingDirs=0
+    local sourceRoot=$sourceDir
+    local targetRoot=$targetDir
+    while [[ "$sourceRoot" != / && "$sourceRoot" == */ ]]; do sourceRoot=${sourceRoot%/}; done
+    while [[ "$targetRoot" != / && "$targetRoot" == */ ]]; do targetRoot=${targetRoot%/}; done
+
+    printf '%sMissing from target%s\n' "$headingColor" "$resetColor"
+    printf '  Source: '
+    printPath "$sourceDir"
+    printf '\n  Target: '
+    printPath "$targetDir"
+    printf '\n\n'
+    listMissingEntries "$sourceRoot" "$targetRoot" true
+    if [[ "$missingFiles" -eq 0 && "$missingDirs" -eq 0 ]]; then
+        printf '  No missing entries.\n'
+    else
+        printf '\n  Listed: %s file(s), %s directory group(s)\n' "$missingFiles" "$missingDirs"
+    fi
+}
+
+dirDelta() {
+    local parentDir1=$1
+    local parentDir2=$2
+    local headingColor='' directoryColor='' fileColor='' resetColor=''
+
+    if [[ -t 1 && "${TERM:-dumb}" != dumb && "${NO_COLOR+x}" != x ]]; then
+        headingColor=$'\033[1m'
+        directoryColor=$'\033[36m'
+        fileColor=$'\033[33m'
+        resetColor=$'\033[0m'
+    fi
+
+    if [[ ! -d "$parentDir1" ]]; then
+        echo "$parentDir1 does not exist."
+        exit 1
+    fi
+
+    if [[ ! -d "$parentDir2" ]]; then
+        echo "$parentDir2 does not exist."
+        exit 1
+    fi
+
+    reportMissingEntries "$parentDir1" "$parentDir2"
+    printf '\n------------------------------------------------------------\n\n'
+    reportMissingEntries "$parentDir2" "$parentDir1"
+}
+
+if [ $# -ne 2 ] ; then
+    echo "Usage: $0 parentDir1 parentDir2" >&2
+    exit 1
+fi
+
+dirDelta "$1" "$2"

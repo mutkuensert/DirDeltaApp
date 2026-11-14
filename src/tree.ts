@@ -1,0 +1,53 @@
+// Shared browser-side presentation model. Full comparison rows remain intact for copying.
+namespace DirDeltaTree {
+  type Row = import('./types').Row
+  export interface Item { row: Row; depth: number; grouped: boolean; open: boolean; descendants: number }
+  export function create(rows: Row[], separator: string) {
+    const byPath = new Map(rows.map(row => [row.path, row]))
+    const children = new Map<string, Row[]>()
+    const summaries = new Map<string, { count: number; left: boolean; right: boolean }>()
+    const parent = (value: string) => value.includes(separator) ? value.slice(0, value.lastIndexOf(separator)) : ''
+    for (const row of rows) {
+      const container = parent(row.path)
+      const siblings = children.get(container) ?? []
+      siblings.push(row); children.set(container, siblings)
+      for (let ancestor = container; ancestor; ancestor = parent(ancestor)) {
+        const summary = summaries.get(ancestor) ?? { count: 0, left: false, right: false }
+        summary.count++; summary.left ||= Boolean(row.left); summary.right ||= Boolean(row.right)
+        summaries.set(ancestor, summary)
+      }
+    }
+    const groups = new Map<string, Row['status']>()
+    for (const row of rows) {
+      if (row.status === 'conflict') continue
+      const summary = summaries.get(row.path)
+      if (!summary?.count) continue
+      if (row.left?.kind === 'directory' && !summary.right) groups.set(row.path, 'left-only')
+      else if (row.right?.kind === 'directory' && !summary.left) groups.set(row.path, 'right-only')
+    }
+    return {
+      visible(expanded: Set<string>, query = ''): Item[] {
+        const matching = new Set<string>()
+        if (query) for (const row of rows) {
+          if (!row.path.toLocaleLowerCase('tr').includes(query)) continue
+          matching.add(row.path)
+          for (let ancestor = parent(row.path); ancestor; ancestor = parent(ancestor)) matching.add(ancestor)
+        }
+        const output: Item[] = []
+        function visit(container: string, depth: number) {
+          for (const original of children.get(container) ?? []) {
+            if (query && !matching.has(original.path)) continue
+            const groupStatus = groups.get(original.path), grouped = Boolean(groupStatus)
+            const open = grouped && (Boolean(query) || expanded.has(original.path))
+            const row = groupStatus ? { ...original, status: groupStatus } : original
+            output.push({ row, depth, grouped, open, descendants: summaries.get(row.path)?.count ?? 0 })
+            if (!grouped || open) visit(row.path, grouped ? depth + 1 : depth)
+          }
+        }
+        visit('', 0)
+        return output
+      },
+      has: (relative: string) => byPath.has(relative)
+    }
+  }
+}

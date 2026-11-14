@@ -1,21 +1,49 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
-    >
-    <meta
-      http-equiv="X-Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
-    >
-    <title>Hello from Electron renderer!</title>
-  </head>
-  <body>
-    <h1>Hello from Electron renderer!</h1>
-    <p>👋</p>
-    <p id="info"></p>
-  </body>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
+  <title>DirDelta — Klasör karşılaştırma</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-icon">⇄</span><div><h1>DirDelta<span class="version">DESKTOP</span></h1></div></div>
+  </header>
+  <main>
+    <section class="intro"><div><p>Klasörlerini seç, farkları incele ve istediğin yönde kopyala.</p></div><button id="compare" class="primary" disabled>⇄ &nbsp; Karşılaştır</button></section>
+    <section class="folders">
+      <button class="folder-card" id="select-left"><span class="folder-icon">▱</span><span class="folder-content"><span class="eyebrow">SOL KLASÖR</span><span class="folder-path" id="path-left">Bir klasör seç</span></span><span class="folder-action">Seç ↗</span></button>
+      <span class="between">⇄</span>
+      <button class="folder-card" id="select-right"><span class="folder-icon right">▱</span><span class="folder-content"><span class="eyebrow">SAĞ KLASÖR</span><span class="folder-path" id="path-right">Bir klasör seç</span></span><span class="folder-action">Seç ↗</span></button>
+    </section>
+    <section class="options"><label class="switch"><input type="checkbox" id="sha256"><span class="track"></span><strong>SHA-256 ile doğrula</strong></label><span class="option-description" id="mode-description">Hızlı karşılaştırma · yol ve dosya boyutu</span><span class="hint">Gizli dosyalar dahil · Alt klasörler dahil</span></section>
+    <section class="workspace">
+      <div class="toolbar"><div class="stats" aria-label="Karşılaştırma özeti"><div><span class="stat-dot all"></span><span>Toplam öğe</span><strong id="stat-total">—</strong></div><div><span class="stat-dot left"></span><span>Yalnızca solda</span><strong id="stat-left">—</strong></div><div><span class="stat-dot right"></span><span>Yalnızca sağda</span><strong id="stat-right">—</strong></div><div><span class="stat-dot different"></span><span>Farklı / çakışan</span><strong id="stat-different">—</strong></div><div><span class="stat-dot same"></span><span id="same-label">Aynı / doğrulanmamış</span><strong id="stat-same">—</strong></div></div><input type="search" id="search" placeholder="Dosya veya klasör ara…" aria-label="Dosya veya klasör ara"></div>
+      <div class="pane-heads"><div><span class="pane-dot left"></span><strong>Sol klasör</strong><button id="bulk-left" disabled>Eksikleri sağa kopyala →</button></div><div><span class="pane-dot right"></span><strong>Sağ klasör</strong><button id="bulk-right" disabled>← Eksikleri sola kopyala</button></div></div>
+      <div class="column-heads"><div><span>AD / GÖRELİ YOL</span><span>BOYUT</span><span>İŞLEM</span></div><div><span>AD / GÖRELİ YOL</span><span>BOYUT</span><span>İŞLEM</span></div></div>
+      <div id="results" class="results"><div class="empty"><span class="empty-symbol">▱ ⇄ ▱</span><h3>Karşılaştırmaya hazır</h3><p>Başlamak için sol ve sağ klasörleri seç.<br>Dosyalar aynı göreli yol üzerinden karşılaştırılır.</p></div></div>
+      <div class="results-footer"><span id="result-count">Henüz karşılaştırma yapılmadı</span><span><i class="legend-dot"></i> Her satırdaki ok ile karşı tarafa kopyala</span></div>
+    </section>
+    <section id="warnings" class="warnings" aria-label="Karşılaştırma uyarıları" hidden>
+      <div class="warnings-header"><strong id="warnings-summary"></strong><button id="warnings-info" class="info-button" type="button" aria-label="Atlanan ve okunamayan öğeler hakkında bilgi" aria-haspopup="dialog" aria-controls="warnings-explanation"><span aria-hidden="true">ⓘ</span> Neden atlandı?</button></div>
+      <div id="warnings-list" class="warnings-list"></div>
+    </section>
+    <dialog id="warnings-explanation" class="info-dialog" aria-labelledby="warnings-title" aria-describedby="warnings-description">
+      <h2 id="warnings-title">Bazı öğeler neden atlanıyor?</h2>
+      <p id="warnings-description">DirDelta normal dosyaları ve klasörleri karşılaştırır. Aşağıdaki öğeler işleme dahil edilmeyebilir:</p>
+      <ul>
+        <li><strong>Sembolik bağlantılar:</strong> Başka bir dosya veya klasöre işaret eder. Seçtiğiniz klasörlerin dışına çıkmamak ve aynı yolları tekrar tekrar taramamak için bu bağlantılar takip edilmez ve kopyalanmaz.</li>
+        <li><strong>Özel dosyalar:</strong> Soketler, adlandırılmış kanallar ve aygıt dosyaları gibi, normal dosya veya klasör olmayan öğeler karşılaştırılmaz ve kopyalanmaz.</li>
+        <li><strong>Okunamayan öğeler:</strong> Erişim izni olmayan, tarama sırasında silinen veya başka bir nedenle okunamayan öğeler için “Okunamadı” uyarısı gösterilir.</li>
+      </ul>
+      <p>Bu uyarılar tüm işlemin başarısız olduğu anlamına gelmez. Sonuçlar atlanan içeriği kapsamaz; klasör kopyalanırken de yalnızca başarıyla taranan öğeler aktarılır. Uyarı listesindeki yolları inceleyebilir, erişim sorunlarını giderdikten sonra yeniden karşılaştırabilirsiniz.</p>
+      <form method="dialog"><button class="primary" type="submit">Anladım</button></form>
+    </dialog>
+    <footer class="statusbar"><span id="status" role="status" aria-live="polite">Hazır. İki klasör seçerek başlayın.</span><button id="cancel" hidden>İşlemi iptal et</button><span id="verification">SHA-256 kapalı</span></footer>
+  </main>
+  <script src="./dist/tree.js"></script>
   <script src="./dist/renderer.js"></script>
+</body>
 </html>

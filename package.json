@@ -1,7 +1,7 @@
 {
   "name": "dirdelta",
   "version": "1.0.0",
-  "description": "",
+  "description": "İki yönlü klasör karşılaştırma ve SHA-256 doğrulamalı kopyalama",
   "license": "ISC",
   "author": "",
   "type": "commonjs",
@@ -10,7 +10,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "npm run build && electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && node --test tests/*.test.cjs",
+    "test:ui": "npm run build && electron tests/ui.cjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
