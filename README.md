@@ -22,7 +22,7 @@ Aynı göreli yollar iki bölmede hizalanır. Tüm içeriği karşı tarafta eks
 
 - **Hızlı mod:** Dosya boyutları farklıysa “Boyut farklı”; aynıysa “Doğrulanmadı” gösterilir. Aynı boyut, içeriğin aynı olduğunu kanıtlamaz.
 - **SHA-256:** İki tarafta bulunan dosyaların tamamının içerikleri okunur ve hash'leri karşılaştırılır. Kopyalanan dosyanın içeriği de hedefe yerleştirilmeden önce doğrulanır. Büyük dosyalarda işlem daha uzun sürebilir.
-- Gizli dosyalar ve boş klasörler dahildir. Sembolik bağlantılar ve özel dosyalar kopyalanmaz; uyarılar gösterilir.
+- Gizli dosyalar ve boş klasörler dahildir. Sembolik bağlantılar ve özel dosyalar kopyalanmaz; “Dahil edilmeyen öğeler” bölümünde nedenleri açıklanır. Okuma hataları ayrı listelenir: öğenin tarafı ve yolu, hatanın nedeni ve önerilen çözüm gösterilir. “Sonuçlar eksik olabilir” yalnızca okuma hatasında belirtilir. SHA-256 sırasında okuma hatası olursa karşılaştırma durdurulur.
 - Dosya/klasör türü çakışmaları otomatik çözülmez. Aynı veya iç içe kök klasörler kabul edilmez.
 - Var olan dosyaların üzerine yazma, yerel onay penceresi gerektirir. Silme ve otomatik eşitleme yapılmaz.
 - Dosyalar hedef klasörde geçici dosyaya yazılır; tamamlanınca hedefe yerleştirilir. Dosya değiştirme atomiktir, tüm toplu işlem tek bir işlem değildir. Hata veya iptal durumunda tamamlanan kopyalar kalır. Kopyalama sonrasında görünüm yeniden taranır.

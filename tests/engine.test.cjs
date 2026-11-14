@@ -93,3 +93,61 @@ test('rejects source changes made after planning', async t => {
   await assert.rejects(executeCopy(result, 'left', plan, false, f.signal), /Kaynak değişti/)
   assert.deepEqual(await fs.readdir(f.right), [])
 })
+
+test('skipped symlinks have an explicit reason, side, path and guidance', async t => {
+  const f = await fixture(t)
+  await fs.symlink(f.right, path.join(f.left, 'shortcut'), 'dir')
+  const result = await compareDirectories(f.left, f.right, false, f.signal)
+  assert.equal(result.warnings.length, 1)
+  const warning = result.warnings[0]
+  assert.equal(warning.kind, 'skipped')
+  assert.equal(warning.reason, 'symlink')
+  assert.equal(warning.side, 'left')
+  assert.equal(warning.path, path.join(f.left, 'shortcut'))
+  assert.match(warning.message, /Sembolik bağlantı/)
+  assert.match(warning.suggestion, /gerçek klasörü/)
+})
+test('read failures are distinct from intentional exclusions and preserve error codes', async t => {
+  const f = await fixture(t)
+  await fs.mkdir(path.join(f.right, 'restricted'))
+  await fs.writeFile(path.join(f.right, 'restricted/hidden.txt'), 'content')
+  const original = fs.readdir
+  t.mock.method(fs, 'readdir', async (directory, options) => {
+    if (directory === path.join(f.right, 'restricted')) throw Object.assign(new Error('permission denied'), { code: 'EACCES' })
+    return original(directory, options)
+  })
+  const result = await compareDirectories(f.left, f.right, false, f.signal)
+  assert.equal(result.warnings.length, 1)
+  const warning = result.warnings[0]
+  assert.equal(warning.kind, 'read-error')
+  assert.equal(warning.side, 'right')
+  assert.equal(warning.code, 'EACCES')
+  assert.match(warning.message, /erişim izni yok/)
+  assert.match(warning.suggestion, /okuma izinlerini/)
+  assert.ok(!result.rows.some(row => row.path.endsWith('hidden.txt')))
+})
+test('read-error explanations distinguish missing paths, disk errors and disconnections', () => {
+  const { explainReadError } = require('../dist/engine.js')
+  for (const [code, expected] of [['ENOENT', /silinmiş/], ['EIO', /Depolama/], ['ENODEV', /Disk veya ağ/], ['ETIMEDOUT', /Disk veya ağ/], ['EBUSY', /kullanımda/], ['EMFILE', /dosya sınırına/]]) {
+    const detail = explainReadError(Object.assign(new Error('low-level message'), { code }))
+    assert.match(detail.message, expected)
+    assert.ok(detail.suggestion.length > 0)
+    assert.equal(detail.code, code)
+  }
+})
+test('SHA-256 read failures stop comparison and identify the file and next action', async t => {
+  const f = await fixture(t)
+  for (const directory of [f.left, f.right]) await fs.writeFile(path.join(directory, 'file'), 'content')
+  const nodeFs = require('node:fs'), original = nodeFs.createReadStream
+  t.mock.method(nodeFs, 'createReadStream', (...args) => {
+    if (args[0] === path.join(f.left, 'file')) throw Object.assign(new Error('I/O error'), { code: 'EIO' })
+    return original(...args)
+  })
+  await assert.rejects(compareDirectories(f.left, f.right, true, f.signal), error => {
+    assert.match(error.message, /SHA-256 karşılaştırması durduruldu/)
+    assert.ok(error.message.includes(path.join(f.left, 'file')))
+    assert.match(error.message, /Depolama aygıtı/)
+    assert.match(error.message, /doğrulanamadı/)
+    return true
+  })
+})

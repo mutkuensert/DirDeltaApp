@@ -15,6 +15,7 @@ app.whenReady().then(async () => {
     await fs.mkdir(path.join(left, 'bundle/nested'), { recursive: true })
     await fs.mkdir(path.join(left, 'bundle/empty'))
     await fs.writeFile(path.join(left, 'bundle/nested/needle.txt'), 'nested content')
+    await fs.symlink(right, path.join(left, 'shortcut'), 'dir')
     let selection = 0
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selection++ ? right : left] })
     dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
@@ -39,6 +40,10 @@ app.whenReady().then(async () => {
     await wait("!document.getElementById('compare').disabled")
     await run("document.getElementById('sha256').click(); document.getElementById('compare').click()")
     await wait("document.querySelectorAll('.result-row').length === 3 && !document.getElementById('compare').disabled")
+    if (!await run("document.getElementById('warnings-summary').textContent.includes('Okuma hatası yok') && !document.getElementById('warnings-summary').textContent.includes('eksik olabilir')")) throw new Error('Intentional exclusions are ambiguous')
+    await run("document.getElementById('warnings-info').click()")
+    await wait("document.getElementById('warnings-explanation').open")
+    await run("document.querySelector('#warnings-explanation button').click()")
     if (await run("document.getElementById('stat-different').textContent") !== '1') throw new Error('Hash status failed')
     await run("document.querySelector('[data-path=\"bundle\"] .entry-title').click()")
     await wait("document.querySelectorAll('.result-row').length === 5")
@@ -60,10 +65,19 @@ app.whenReady().then(async () => {
     await run("document.querySelectorAll('.result-row .copy-button')[1].click()")
     await wait("document.getElementById('stat-different').textContent === '0' && !document.getElementById('compare').disabled")
     if (await fs.readFile(path.join(left, 'changed.txt'), 'utf8') !== 'right') throw new Error('Per-row reverse copy failed')
+    const originalReaddir = fs.readdir
+    fs.readdir = async (directory, options) => {
+      if (directory === path.join(left, 'bundle/nested')) throw Object.assign(new Error('Permission denied'), { code: 'EACCES' })
+      return originalReaddir(directory, options)
+    }
+    await run("document.getElementById('compare').click()")
+    await wait("!document.getElementById('compare').disabled && document.getElementById('warnings-summary').textContent.includes('1 öğe okunamadı')")
+    fs.readdir = originalReaddir
+    if (!await run("document.getElementById('warnings-list').textContent.includes('erişim izni yok') && document.getElementById('warnings-list').textContent.includes('EACCES') && document.getElementById('warnings-summary').textContent.includes('sonuçlar eksik olabilir')")) throw new Error('Read-error explanation failed')
     await new Promise(resolve => setTimeout(resolve, 300))
     const screenshot = path.join(root, 'screenshot.png')
     await fs.writeFile(screenshot, (await win.webContents.capturePage()).toPNG())
-    console.log(`UI smoke passed: folder selection, SHA-256, aligned results, bulk copy, refresh, nested expansion, collapsed folder copy, search, per-row reverse copy and overwrite confirmation. Screenshot: ${screenshot}`)
+    console.log(`UI smoke passed: folder selection, SHA-256, aligned results, bulk copy, refresh, nested expansion, collapsed folder copy, search, per-row reverse copy, overwrite confirmation, intentional exclusions, read-error explanations and info dialog. Screenshot: ${screenshot}`)
     app.exit(0)
   } catch (error) { console.error(error); app.exit(1) }
 })

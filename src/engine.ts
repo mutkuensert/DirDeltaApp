@@ -3,7 +3,21 @@ import * as path from 'node:path'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
 import { pipeline } from 'node:stream/promises'
-import type { Comparison, Entry, Progress, Row, Side } from './types'
+import type { Comparison, Entry, Progress, Row, ScanWarning, Side } from './types'
+
+export function explainReadError(error: unknown): { message: string; suggestion: string; code?: string } {
+  const code = (error as NodeJS.ErrnoException | null)?.code
+  switch (code) {
+    case 'EACCES': case 'EPERM': return { code, message: 'Bu öğeye erişim izni yok.', suggestion: 'Dosya veya klasörün okuma izinlerini kontrol edip yeniden karşılaştırın.' }
+    case 'ENOENT': return { code, message: 'Öğe tarama sırasında silinmiş, taşınmış veya bağlantısı kesilmiş olabilir.', suggestion: 'Öğenin hâlâ yerinde olduğunu kontrol edip yeniden karşılaştırın.' }
+    case 'ENOTDIR': return { code, message: 'Klasör yolu artık geçerli değil; bir klasör taşınmış veya dosyayla değiştirilmiş olabilir.', suggestion: 'Klasör yapısını kontrol edip yeniden karşılaştırın.' }
+    case 'EIO': return { code, message: 'Depolama aygıtı veriyi okuyamadı.', suggestion: 'Diskin durumunu ve bağlantısını kontrol edip yeniden deneyin.' }
+    case 'ENODEV': case 'ENXIO': case 'ESTALE': case 'ENOTCONN': case 'ETIMEDOUT': case 'EHOSTUNREACH': case 'ENETUNREACH': return { code, message: 'Disk veya ağ konumuna erişilemiyor.', suggestion: 'Harici disk ya da ağ bağlantısını kontrol edip yeniden karşılaştırın.' }
+    case 'EBUSY': return { code, message: 'Öğe şu anda kullanımda olduğu için okunamadı.', suggestion: 'Öğeyi kullanan işlemin bitmesini bekleyip yeniden deneyin.' }
+    case 'EMFILE': case 'ENFILE': return { code, message: 'Sistemin aynı anda açabileceği dosya sınırına ulaşıldı.', suggestion: 'Gereksiz uygulamaları kapatıp yeniden deneyin.' }
+    default: return { code, message: `Öğe okunamadı: ${error instanceof Error ? error.message : String(error)}`, suggestion: 'Yolu, erişim izinlerini ve disk bağlantısını kontrol edip yeniden karşılaştırın.' }
+  }
+}
 
 export function checkCancelled(signal: AbortSignal) { signal.throwIfAborted() }
 export async function hashFile(file: string, signal: AbortSignal): Promise<string> {
@@ -37,9 +51,9 @@ export async function safePath(root: string, relative: string): Promise<string> 
   return target
 }
 export async function compareDirectories(left: string, right: string, sha256: boolean, signal: AbortSignal, progress: (p: Progress) => void = () => {}): Promise<Comparison> {
-  const start = Date.now(), roots = await validateRoots(left, right), warnings: string[] = []
+  const start = Date.now(), roots = await validateRoots(left, right), warnings: ScanWarning[] = []
   let count = 0
-  async function scan(root: string) {
+  async function scan(root: string, side: Side) {
     const entries = new Map<string, Entry>()
     async function walk(relative: string) {
       checkCancelled(signal)
@@ -50,17 +64,28 @@ export async function compareDirectories(left: string, right: string, sha256: bo
         const rel = path.join(relative, child.name), absolute = path.join(root, rel)
         try {
           const stat = await fs.lstat(absolute)
-          if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) { warnings.push(`Atlandı (bağlantı/özel dosya): ${absolute}`); continue }
+          if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) {
+            const symlink = stat.isSymbolicLink()
+            warnings.push({ kind: 'skipped', reason: symlink ? 'symlink' : 'special-file', side, path: absolute,
+              message: symlink ? 'Sembolik bağlantı: başka bir konuma işaret ettiği için takip edilmedi.' : 'Özel dosya: normal dosya veya klasör olmadığı için işleme dahil edilmedi.',
+              suggestion: symlink ? 'Gerekirse bağlantının işaret ettiği gerçek klasörü ayrı olarak seçin.' : 'Soket, kanal ve aygıt dosyaları karşılaştırılmaz veya kopyalanmaz.' })
+            continue
+          }
           entries.set(rel, { kind: stat.isDirectory() ? 'directory' : 'file', size: stat.isFile() ? stat.size : 0, modified: stat.mtimeMs })
           progress({ phase: 'Klasörler taranıyor', path: rel, count: ++count })
           if (stat.isDirectory()) await walk(rel)
-        } catch (error) { if (signal.aborted) throw error; warnings.push(`Okunamadı: ${absolute} (${(error as Error).message})`) }
+        } catch (error) { if (signal.aborted) throw error; warnings.push({ kind: 'read-error', reason: 'read-failure', side, path: absolute, ...explainReadError(error) }) }
       }
     }
-    await walk('')
+    try { await walk('') }
+    catch (error) {
+      if (signal.aborted) throw error
+      const detail = explainReadError(error)
+      throw new Error(`${side === 'left' ? 'Sol' : 'Sağ'} kök klasör okunamadı: ${root}. ${detail.message} ${detail.suggestion}`)
+    }
     return entries
   }
-  const a = await scan(roots.left), b = await scan(roots.right), rows: Row[] = []
+  const a = await scan(roots.left, 'left'), b = await scan(roots.right, 'right'), rows: Row[] = []
   for (const relative of [...new Set([...a.keys(), ...b.keys()])].sort((a, b) => a.localeCompare(b, 'tr'))) {
     checkCancelled(signal)
     const l = a.get(relative), r = b.get(relative)
@@ -69,8 +94,14 @@ export async function compareDirectories(left: string, right: string, sha256: bo
       progress({ phase: 'SHA-256 hesaplanıyor', path: relative, count: ++count })
       // Any hash failure aborts comparison; unreadable content must never appear equal.
       const beforeL = await fs.stat(await safePath(roots.left, relative)), beforeR = await fs.stat(await safePath(roots.right, relative))
-      l.hash = await hashFile(await safePath(roots.left, relative), signal)
-      r.hash = await hashFile(await safePath(roots.right, relative), signal)
+      for (const side of ['left', 'right'] as const) {
+        try { (side === 'left' ? l : r).hash = await hashFile(await safePath(roots[side], relative), signal) }
+        catch (error) {
+          if (signal.aborted) throw error
+          const detail = explainReadError(error)
+          throw new Error(`SHA-256 karşılaştırması durduruldu. ${side === 'left' ? 'Sol' : 'Sağ'} dosya okunamadı: ${path.join(roots[side], relative)}. ${detail.message} ${detail.suggestion} Dosyanın aynı veya farklı olduğu doğrulanamadı.`)
+        }
+      }
       const afterL = await fs.stat(await safePath(roots.left, relative)), afterR = await fs.stat(await safePath(roots.right, relative))
       if (beforeL.mtimeMs !== afterL.mtimeMs || beforeL.size !== afterL.size || beforeR.mtimeMs !== afterR.mtimeMs || beforeR.size !== afterR.size) throw new Error(`Karşılaştırma sırasında dosya değişti: ${relative}`)
       status = l.hash === r.hash ? 'same' : 'different'

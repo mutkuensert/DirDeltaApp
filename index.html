@@ -27,18 +27,19 @@
       <div class="results-footer"><span id="result-count">Henüz karşılaştırma yapılmadı</span><span><i class="legend-dot"></i> Her satırdaki ok ile karşı tarafa kopyala</span></div>
     </section>
     <section id="warnings" class="warnings" aria-label="Karşılaştırma uyarıları" hidden>
-      <div class="warnings-header"><strong id="warnings-summary"></strong><button id="warnings-info" class="info-button" type="button" aria-label="Atlanan ve okunamayan öğeler hakkında bilgi" aria-haspopup="dialog" aria-controls="warnings-explanation"><span aria-hidden="true">ⓘ</span> Neden atlandı?</button></div>
+      <div class="warnings-header"><strong id="warnings-summary"></strong><button id="warnings-info" class="info-button" type="button" aria-label="Atlanan ve okunamayan öğeler hakkında bilgi" aria-haspopup="dialog" aria-controls="warnings-explanation"><span aria-hidden="true">ⓘ</span> Açıklama</button></div>
       <div id="warnings-list" class="warnings-list"></div>
     </section>
     <dialog id="warnings-explanation" class="info-dialog" aria-labelledby="warnings-title" aria-describedby="warnings-description">
-      <h2 id="warnings-title">Bazı öğeler neden atlanıyor?</h2>
-      <p id="warnings-description">DirDelta normal dosyaları ve klasörleri karşılaştırır. Aşağıdaki öğeler işleme dahil edilmeyebilir:</p>
+      <h2 id="warnings-title">Atlanan öğeler ve okuma hataları</h2>
+      <p id="warnings-description">DirDelta, dahil edilmeyen öğeler ile okunamayan öğeleri ayrı gösterir. Her kayıtta hangi tarafta olduğu, yolu, nedeni ve önerilen işlem bulunur.</p>
       <ul>
         <li><strong>Sembolik bağlantılar:</strong> Başka bir dosya veya klasöre işaret eder. Seçtiğiniz klasörlerin dışına çıkmamak ve aynı yolları tekrar tekrar taramamak için bu bağlantılar takip edilmez ve kopyalanmaz.</li>
         <li><strong>Özel dosyalar:</strong> Soketler, adlandırılmış kanallar ve aygıt dosyaları gibi, normal dosya veya klasör olmayan öğeler karşılaştırılmaz ve kopyalanmaz.</li>
-        <li><strong>Okunamayan öğeler:</strong> Erişim izni olmayan, tarama sırasında silinen veya başka bir nedenle okunamayan öğeler için “Okunamadı” uyarısı gösterilir.</li>
+        <li><strong>Okunamayan öğeler:</strong> Erişim izni olmayan, tarama sırasında silinen veya taşınan öğeler; disk ya da ağ bağlantısı kesintileri ve disk hataları nedeniyle okunamayan öğeler bu gruptadır. İzinleri ve bağlantıları kontrol edip yeniden karşılaştırın.</li>
       </ul>
-      <p>Bu uyarılar tüm işlemin başarısız olduğu anlamına gelmez. Sonuçlar atlanan içeriği kapsamaz; klasör kopyalanırken de yalnızca başarıyla taranan öğeler aktarılır. Uyarı listesindeki yolları inceleyebilir, erişim sorunlarını giderdikten sonra yeniden karşılaştırabilirsiniz.</p>
+      <p>Dahil edilmeyen öğeler bir okuma hatası değildir; karşılaştırma ve kopyalama kapsamı dışındadır. “Sonuçlar eksik olabilir” ifadesi yalnızca okuma hatası olduğunda gösterilir: okunamayan bir klasörün altındaki öğeler listelenemeyebilir. Klasör kopyalanırken de yalnızca başarıyla taranan öğeler aktarılır. Gizli dosyalar ve boş klasörler normal şekilde dahil edilir.</p>
+      <p>SHA-256 hesaplanırken bir dosya okunamazsa karşılaştırma durdurulur ve hata gösterilir; doğrulanamayan dosya “aynı” kabul edilmez.</p>
       <form method="dialog"><button class="primary" type="submit">Anladım</button></form>
     </dialog>
     <footer class="statusbar"><span id="status" role="status" aria-live="polite">Hazır. İki klasör seçerek başlayın.</span><button id="cancel" hidden>İşlemi iptal et</button><span id="verification">SHA-256 kapalı</span></footer>

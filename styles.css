@@ -20,3 +20,10 @@
 .tree-indent{flex:0 0 14px;align-self:stretch;border-left:1px solid #354157}
 .group-count{color:#929fb4;white-space:nowrap}
 .entry-subtitle{flex-wrap:wrap}
+
+.warning-group h3{font-size:13px;margin:12px 0 8px;color:#efcf9b}
+.warning-item{border-left:2px solid #715938;padding:4px 0 4px 10px;margin:8px 0}
+.warning-item strong{font-size:12px;font-weight:500}
+.warning-path{color:#d2b995;margin-top:5px;overflow-wrap:anywhere}
+.warning-item p{font-size:12px;color:#b9a78c;margin:5px 0 0;line-height:1.5}
+.warning-code{display:block;color:#a4937e;font-size:11px;margin-top:4px}

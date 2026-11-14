@@ -111,15 +111,31 @@ function render() {
 async function compare() {
   if (busy || !hasLeft || !hasRight) return
   setBusy(true); setStatus('Karşılaştırma başlatılıyor…')
-  data = undefined; render()
+  data = undefined; el('warnings').hidden = true; render()
   try {
     data = await api.compare(sha.checked)
     tree = DirDeltaTree.create(data.rows, data.roots.left.startsWith('/') ? '/' : '\\')
     expandedFolders.clear()
     el('warnings').hidden = !data.warnings.length
-    el('warnings-summary').textContent = `${data.warnings.length} uyarı · Sonuçlar eksik olabilir`
-    el('warnings-list').textContent = data.warnings.join('\n')
-    setStatus(`Karşılaştırma tamamlandı. ${data.rows.length} öğe incelendi.${data.warnings.length ? ' Atlanan öğeleri uyarılardan inceleyin.' : ''}`)
+    const skipped = data.warnings.filter(warning => warning.kind === 'skipped')
+    const failed = data.warnings.filter(warning => warning.kind === 'read-error')
+    el('warnings-summary').textContent = failed.length
+      ? `${failed.length} öğe okunamadı; sonuçlar eksik olabilir.${skipped.length ? ` Ayrıca ${skipped.length} öğe dahil edilmedi.` : ''}`
+      : `${skipped.length} öğe karşılaştırmaya dahil edilmedi. Okuma hatası yok.`
+    const warningList = el('warnings-list'); warningList.replaceChildren()
+    for (const [heading, warnings] of [['Okunamayan öğeler', failed], ['Dahil edilmeyen öğeler', skipped]] as const) {
+      if (!warnings.length) continue
+      const group = node('section', 'warning-group')
+      group.append(node('h3', '', `${heading} (${warnings.length})`))
+      for (const warning of warnings) {
+        const item = node('div', `warning-item ${warning.kind}`)
+        item.append(node('strong', '', `${warning.side === 'left' ? 'Sol' : 'Sağ'} klasör · ${warning.message}`), node('div', 'warning-path', warning.path), node('p', '', warning.suggestion))
+        if (warning.code) item.append(node('span', 'warning-code', `Hata kodu: ${warning.code}`))
+        group.append(item)
+      }
+      warningList.append(group)
+    }
+    setStatus(`Karşılaştırma tamamlandı. ${data.rows.length} öğe incelendi.${failed.length ? ' Bazı öğeler okunamadı; sonuçlar eksik olabilir. Uyarıları inceleyin.' : skipped.length ? ' Dahil edilmeyen öğeler için bilgi alanını inceleyin.' : ''}`)
   } catch (error) { setStatus(message(error)) }
   finally { setBusy(false); render() }
 }
