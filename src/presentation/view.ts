@@ -8,6 +8,7 @@ namespace DirDeltaView {
     tree?: ReturnType<typeof DirDeltaTree.create>
     expandedFolders: ReadonlySet<string>
     query: string
+    hideHiddenItems: boolean
   }
   interface ViewActions {
     isBusy(): boolean
@@ -40,7 +41,7 @@ namespace DirDeltaView {
   export function createResults() {
     let renderToken = 0
     return function render(state: ViewState, actions: ViewActions) {
-      const { data, tree, expandedFolders, query } = state
+      const { data, tree, expandedFolders, query, hideHiddenItems } = state
       const token = ++renderToken
       renderStats(data)
       const results = el('results'); results.replaceChildren()
@@ -49,13 +50,14 @@ namespace DirDeltaView {
         el('result-count').textContent = 'Henüz karşılaştırma yapılmadı'; return
       }
       if (!tree) throw new Error('Karşılaştırma ağacı oluşturulmadı.')
-      const rows = tree.visible(expandedFolders, query)
+      const rows = tree.visible(expandedFolders, query, hideHiddenItems)
       el('result-count').textContent = `${rows.length} satır · ${data.rows.length} toplam öğe · ${(data.elapsed / 1000).toFixed(2)} sn`
       if (!rows.length) {
         const empty = node('div', 'empty')
         const hasReadErrors = data.warnings.some(warning => warning.kind === 'read-error')
-        const title = query ? 'Aramayla eşleşen fark yok' : hasReadErrors ? 'Okunabilen öğelerde fark bulunamadı' : 'Fark bulunamadı'
-        const description = query ? 'Diğer farkları görmek için aramayı değiştir veya temizle.'
+        const filteredOut = hideHiddenItems && tree.visible(expandedFolders, query).length > 0
+        const title = filteredOut ? 'Gizli öğe filtresi dışında fark yok' : query ? 'Aramayla eşleşen fark yok' : hasReadErrors ? 'Okunabilen öğelerde fark bulunamadı' : 'Fark bulunamadı'
+        const description = filteredOut ? 'Gizlenen farkları görmek için “Gizli klasörleri ve dosyaları gizle” kutusunun işaretini kaldırın.' : query ? 'Diğer farkları görmek için aramayı değiştir veya temizle.'
           : hasReadErrors ? 'Bazı öğeler okunamadı. Uyarıları inceleyip yeniden karşılaştırın.'
           : data.sha256 ? 'Karşılaştırılan öğelerde yol, tür veya içerik farkı bulunamadı.'
           : 'Yol, tür veya boyut farkı bulunamadı. İçerikleri karşılaştırmak için SHA-256 seçeneğini açın.'

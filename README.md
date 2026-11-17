@@ -20,6 +20,8 @@ Node.js ve Electron'un desteklediği bir masaüstü ortamı gerekir.
 
 Liste yalnızca eksik, farklı veya türü çakışan öğeleri gösterir. İki tarafta bulunan üst klasörler, içlerinde fark olsa bile ayrıca listelenmez; farklar tam göreli yollarıyla gösterilir. Yalnızca bir tarafta bulunan klasörler ve dosya/klasör türü çakışmaları listelenmeye devam eder. Aynı veya hızlı modda aynı boyutta olan dosyalar, kökte ya da alt klasörlerde bulunmaları fark etmeksizin gizlenir. Görünür fark içermeyen klasörler de gizlenir. Arama farkların tam göreli yollarını kapsar. “Aynı / doğrulanmamış” sayacı yoktur; toplam öğe sayısı tüm taramayı kapsar.
 
+**Gizli klasörleri ve dosyaları gizle** kutusu, noktayla başlayan dosyaları (`.env` gibi), klasörleri (`.git` gibi) ve alt içeriklerini listeden ve aramadan gizler. Varsayılan olarak kapalıdır ve yeniden tarama gerektirmez. Sayaçları, taramayı ve kopyalama kapsamını değiştirmez; Windows gizli özniteliğini temel almaz.
+
 Tüm içeriği karşı tarafta eksik olan klasörler kapalı gösterilir; satıra tıklayarak açabilirsiniz. Klasörün kopyalama oku tüm taranan içeriği aktarır. Toplu kopyalama bütün karşılaştırmadaki eksikleri kapsar. Dosya adına tıklamak dosya yöneticisinde konumunu gösterir.
 
 - **Hızlı mod:** Yol, tür ve dosya boyutu farklarını gösterir. Aynı boyutlu dosyalar listelenmez; içeriklerinin aynı olduğu varsayılmaz. Boyut farkı içeren klasörler görünür kalır.

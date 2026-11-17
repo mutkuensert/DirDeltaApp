@@ -27,3 +27,5 @@
 .warning-path{color:#d2b995;margin-top:5px;overflow-wrap:anywhere}
 .warning-item p{font-size:12px;color:#b9a78c;margin:5px 0 0;line-height:1.5}
 .warning-code{display:block;color:#a4937e;font-size:11px;margin-top:4px}
+
+.options{flex-wrap:wrap}.visibility-filter{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;white-space:nowrap}.visibility-filter input{accent-color:#a8b8ff}

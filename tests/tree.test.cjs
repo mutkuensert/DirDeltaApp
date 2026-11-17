@@ -159,3 +159,20 @@ test('equal and unchecked files never appear in results or search, including at 
   assert.deepEqual(paths(tree.visible(new Set(), 'changed')), ['folder/changed'])
   assert.equal(rows.length, 5)
 })
+
+test('hidden-item filter hides dotfiles and dot directories at every depth and is reversible', () => {
+  for (const separator of ['/', '\\']) {
+    const p = value => value.replaceAll('/', separator)
+    const rows = [row('.git', dir, undefined, 'left-only'), row(p('.git/config'), file, undefined, 'left-only'), row('.env', file, undefined, 'left-only'), row('shared', dir, dir, 'same'), row(p('shared/.cache'), dir, dir, 'same'), row(p('shared/.cache/item'), file, file, 'different'), row(p('shared/visible'), file, file, 'different'), row('version.1', dir, undefined, 'left-only')]
+    const tree = create(rows, separator)
+    const expanded = new Set(['.git'])
+    const before = paths(tree.visible(expanded))
+    assert.deepEqual(paths(tree.visible(expanded, '', true)), [p('shared/visible'), 'version.1'])
+    assert.deepEqual(paths(tree.visible(expanded, '.env', true)), [])
+    assert.deepEqual(paths(tree.visible(expanded, 'config', true)), [])
+    assert.deepEqual(paths(tree.visible(expanded, 'item', true)), [])
+    assert.deepEqual(paths(tree.visible(expanded)), before)
+    assert.equal(rows.length, 8)
+    assert.deepEqual(Array.from(context.DirDeltaTree.missingPaths(rows, 'left', separator)), ['.git', '.env', 'version.1'])
+  }
+})

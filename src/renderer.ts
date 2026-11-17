@@ -10,6 +10,8 @@ interface Window { dirdelta: import('./types').DesktopAPI }
   let tree: ReturnType<typeof DirDeltaTree.create> | undefined
   const expandedFolders = new Set<string>()
   let hasLeft = false, hasRight = false
+  const hideHiddenItems = el<HTMLInputElement>('hide-hidden-items')
+  hideHiddenItems.addEventListener('change', () => render())
   const sha = el<HTMLInputElement>('sha256')
   function setStatus(message: string) { el('status').textContent = message }
   function updateControls() {
@@ -29,7 +31,7 @@ interface Window { dirdelta: import('./types').DesktopAPI }
   const renderResults = DirDeltaView.createResults()
   function render() {
     updateControls()
-    renderResults({ data, tree, expandedFolders, query }, {
+    renderResults({ data, tree, expandedFolders, query, hideHiddenItems: hideHiddenItems.checked }, {
       isBusy: () => busy,
       toggleFolder: path => {
         if (expandedFolders.has(path)) expandedFolders.delete(path)

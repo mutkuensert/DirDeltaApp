@@ -31,6 +31,9 @@ namespace DirDeltaTree {
         summaries.set(ancestor, summary)
       }
     }
+    const hiddenItems = new Set(rows.filter(row =>
+      row.path.split(separator).some(component => component.startsWith('.'))
+    ).map(row => row.path))
     const hidden = new Set<string>()
     const groups = new Map<string, Row['status']>()
     for (const row of rows) {
@@ -42,17 +45,18 @@ namespace DirDeltaTree {
       else if (row.right?.kind === 'directory' && !summary.left) groups.set(row.path, 'right-only')
     }
     return {
-      visible(expanded: ReadonlySet<string>, query = ''): Item[] {
+      visible(expanded: ReadonlySet<string>, query = '', hideHiddenItems = false): Item[] {
+        const excluded = (relative: string) => hidden.has(relative) || (hideHiddenItems && hiddenItems.has(relative))
         const matching = new Set<string>()
         if (query) for (const row of rows) {
-          if (hidden.has(row.path) || !row.path.toLocaleLowerCase('tr').includes(query)) continue
+          if (excluded(row.path) || !row.path.toLocaleLowerCase('tr').includes(query)) continue
           matching.add(row.path)
           for (let ancestor = parent(row.path); ancestor; ancestor = parent(ancestor)) matching.add(ancestor)
         }
         const output: Item[] = []
         function visit(container: string, depth: number) {
           for (const original of children.get(container) ?? []) {
-            if (hidden.has(original.path) || (query && !matching.has(original.path))) continue
+            if (excluded(original.path) || (query && !matching.has(original.path))) continue
             if (original.status === 'same' || original.status === 'unchecked') {
               visit(original.path, depth)
               continue
