@@ -21,7 +21,7 @@ namespace DirDeltaView {
     return value as T
   }
   const el = element
-  const labels: Record<ResultRow['status'], string> = { 'left-only': 'Yalnızca solda', 'right-only': 'Yalnızca sağda', different: 'İçerik farklı', same: 'Aynı', unchecked: 'Doğrulanmadı', conflict: 'Tür çakışması' }
+  const labels: Record<ResultRow['status'], string> = { 'left-only': 'Yalnızca solda', 'right-only': 'Yalnızca sağda', different: 'İçerik farklı', same: 'Alt öğelerde fark var', unchecked: 'Alt öğelerde fark var', conflict: 'Tür çakışması' }
   function formatSize(bytes: number) {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`
@@ -35,8 +35,7 @@ namespace DirDeltaView {
   }
   function renderStats(data: ComparisonData | undefined) {
     const rows = data?.rows
-    for (const [id, value] of Object.entries({ total: rows?.length, left: rows?.filter(r => r.status === 'left-only').length, right: rows?.filter(r => r.status === 'right-only').length, different: rows?.filter(r => r.status === 'different' || r.status === 'conflict').length, same: rows?.filter(r => r.status === 'same' || r.status === 'unchecked').length })) el(`stat-${id}`).textContent = value === undefined ? '—' : String(value)
-    el('same-label').textContent = data?.sha256 ? 'Aynı' : 'Aynı / doğrulanmamış'
+    for (const [id, value] of Object.entries({ total: rows?.length, left: rows?.filter(r => r.status === 'left-only').length, right: rows?.filter(r => r.status === 'right-only').length, different: rows?.filter(r => r.status === 'different' || r.status === 'conflict').length })) el(`stat-${id}`).textContent = value === undefined ? '—' : String(value)
   }
   export function createResults() {
     let renderToken = 0
@@ -52,7 +51,18 @@ namespace DirDeltaView {
       if (!tree) throw new Error('Karşılaştırma ağacı oluşturulmadı.')
       const rows = tree.visible(expandedFolders, query)
       el('result-count').textContent = `${rows.length} satır · ${data.rows.length} toplam öğe · ${(data.elapsed / 1000).toFixed(2)} sn`
-      if (!rows.length) { const empty = node('div', 'empty'); empty.append(node('span', 'empty-symbol', '✓'), node('h3', '', data.rows.length ? 'Bu görünümde öğe yok' : 'Klasörler boş'), node('p', '', 'Diğer sonuçları görmek için aramayı değiştir veya temizle.')); results.append(empty); return }
+      if (!rows.length) {
+        const empty = node('div', 'empty')
+        const hasReadErrors = data.warnings.some(warning => warning.kind === 'read-error')
+        const title = query ? 'Aramayla eşleşen fark yok' : hasReadErrors ? 'Okunabilen öğelerde fark bulunamadı' : 'Fark bulunamadı'
+        const description = query ? 'Diğer farkları görmek için aramayı değiştir veya temizle.'
+          : hasReadErrors ? 'Bazı öğeler okunamadı. Uyarıları inceleyip yeniden karşılaştırın.'
+          : data.sha256 ? 'Karşılaştırılan öğelerde yol, tür veya içerik farkı bulunamadı.'
+          : 'Yol, tür veya boyut farkı bulunamadı. İçerikleri karşılaştırmak için SHA-256 seçeneğini açın.'
+        empty.append(node('span', 'empty-symbol', hasReadErrors ? '!' : '✓'), node('h3', '', title), node('p', '', description))
+        results.append(empty)
+        return
+      }
       // Build in chunks so searching remains responsive on large directory trees.
       let index = 0
       function appendChunk() {
@@ -87,7 +97,7 @@ namespace DirDeltaView {
             if (toggleable) title.setAttribute('aria-expanded', String(item.open))
             title.disabled = actions.isBusy()
             title.addEventListener('click', () => { if (toggleable) toggleFolder(); else actions.reveal(side, row.path) })
-            const subtitle = node('div', 'entry-subtitle'), badge = node('span', `badge ${row.status}`, item.grouped && row.left && row.right ? (row.status === 'left-only' ? 'İçerik yalnızca solda' : 'İçerik yalnızca sağda') : row.status === 'different' && !data?.sha256 ? 'Boyut farklı' : labels[row.status])
+            const subtitle = node('div', 'entry-subtitle'), badge = node('span', `badge ${row.status}`, item.grouped && row.left && row.right && (row.status === 'left-only' || row.status === 'right-only') ? (row.status === 'left-only' ? 'İçerik yalnızca solda' : 'İçerik yalnızca sağda') : row.status === 'different' && !data?.sha256 ? 'Boyut farklı' : labels[row.status])
             subtitle.append(badge, node('span', '', new Date(entry.modified).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })))
             if (item.grouped) subtitle.append(node('span', 'group-count', `${item.descendants} alt öğe`))
             details.append(title, subtitle); name.append(details)

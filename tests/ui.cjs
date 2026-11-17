@@ -12,6 +12,7 @@ app.whenReady().then(async () => {
     await fs.writeFile(path.join(left, 'hello.txt'), 'hello')
     await fs.writeFile(path.join(left, 'changed.txt'), 'left!')
     await fs.writeFile(path.join(right, 'changed.txt'), 'right')
+    for (const directory of [left, right]) await fs.writeFile(path.join(directory, 'equal.txt'), 'equal')
     await fs.mkdir(path.join(left, 'bundle/nested'), { recursive: true })
     await fs.mkdir(path.join(left, 'bundle/empty'))
     await fs.writeFile(path.join(left, 'bundle/nested/needle.txt'), 'nested content')
@@ -57,6 +58,8 @@ app.whenReady().then(async () => {
     await run("document.querySelector('[data-path=\"bundle\"] .copy-button').click()")
     await wait("document.getElementById('stat-left').textContent === '1' && !document.getElementById('compare').disabled")
     if (await fs.readFile(path.join(right, 'bundle/nested/needle.txt'), 'utf8') !== 'nested content') throw new Error('Collapsed folder copy failed')
+    if (await run("Boolean(document.querySelector('[data-path=\"bundle\"]'))")) throw new Error('Identical directory is still visible after SHA-256 comparison')
+
     await run("document.getElementById('bulk-left').click()")
     await wait("document.getElementById('stat-left').textContent === '0' && !document.getElementById('compare').disabled")
     if (await fs.readFile(path.join(right, 'hello.txt'), 'utf8') !== 'hello') throw new Error('Copy failed')
@@ -65,6 +68,12 @@ app.whenReady().then(async () => {
     await run("document.querySelectorAll('.result-row .copy-button')[1].click()")
     await wait("document.getElementById('stat-different').textContent === '0' && !document.getElementById('compare').disabled")
     if (await fs.readFile(path.join(left, 'changed.txt'), 'utf8') !== 'right') throw new Error('Per-row reverse copy failed')
+    await run("document.getElementById('search').value = ''; document.getElementById('search').dispatchEvent(new Event('input'))")
+    await wait("document.querySelectorAll('.result-row').length === 0 && document.querySelector('.empty h3').textContent === 'Fark bulunamadı'")
+    if (await run("Boolean(document.getElementById('stat-same') || document.getElementById('same-label'))")) throw new Error('Same/unverified summary is still present')
+    await run("document.getElementById('sha256').click(); document.getElementById('compare').click()")
+    await wait("!document.getElementById('compare').disabled && document.querySelector('.empty h3')?.textContent === 'Fark bulunamadı'")
+    if (await run("document.querySelectorAll('.result-row').length") !== 0) throw new Error('Unchecked files remain visible in fast mode')
     const originalReaddir = fs.readdir
     fs.readdir = async (directory, options) => {
       if (directory === path.join(left, 'bundle/nested')) throw Object.assign(new Error('Permission denied'), { code: 'EACCES' })

@@ -18,22 +18,25 @@ namespace DirDeltaTree {
   export function create(rows: readonly Row[], separator: string) {
     const byPath = new Map(rows.map(row => [row.path, row]))
     const children = new Map<string, Row[]>()
-    const summaries = new Map<string, { count: number; left: boolean; right: boolean }>()
+    const summaries = new Map<string, { count: number; left: boolean; right: boolean; different: boolean }>()
     const parent = (value: string) => value.includes(separator) ? value.slice(0, value.lastIndexOf(separator)) : ''
     for (const row of rows) {
       const container = parent(row.path)
       const siblings = children.get(container) ?? []
       siblings.push(row); children.set(container, siblings)
       for (let ancestor = container; ancestor; ancestor = parent(ancestor)) {
-        const summary = summaries.get(ancestor) ?? { count: 0, left: false, right: false }
+        const summary = summaries.get(ancestor) ?? { count: 0, left: false, right: false, different: false }
         summary.count++; summary.left ||= Boolean(row.left); summary.right ||= Boolean(row.right)
+        summary.different ||= row.status !== 'same' && row.status !== 'unchecked'
         summaries.set(ancestor, summary)
       }
     }
+    const hidden = new Set<string>()
     const groups = new Map<string, Row['status']>()
     for (const row of rows) {
       if (row.status === 'conflict') continue
       const summary = summaries.get(row.path)
+      if ((row.status === 'same' || row.status === 'unchecked') && !summary?.different) hidden.add(row.path)
       if (!summary?.count) continue
       if (row.left?.kind === 'directory' && !summary.right) groups.set(row.path, 'left-only')
       else if (row.right?.kind === 'directory' && !summary.left) groups.set(row.path, 'right-only')
@@ -42,14 +45,18 @@ namespace DirDeltaTree {
       visible(expanded: ReadonlySet<string>, query = ''): Item[] {
         const matching = new Set<string>()
         if (query) for (const row of rows) {
-          if (!row.path.toLocaleLowerCase('tr').includes(query)) continue
+          if (hidden.has(row.path) || !row.path.toLocaleLowerCase('tr').includes(query)) continue
           matching.add(row.path)
           for (let ancestor = parent(row.path); ancestor; ancestor = parent(ancestor)) matching.add(ancestor)
         }
         const output: Item[] = []
         function visit(container: string, depth: number) {
           for (const original of children.get(container) ?? []) {
-            if (query && !matching.has(original.path)) continue
+            if (hidden.has(original.path) || (query && !matching.has(original.path))) continue
+            if (original.status === 'same' || original.status === 'unchecked') {
+              visit(original.path, depth)
+              continue
+            }
             const groupStatus = groups.get(original.path), grouped = Boolean(groupStatus)
             const open = grouped && (Boolean(query) || expanded.has(original.path))
             const row = groupStatus ? { ...original, status: groupStatus } : original

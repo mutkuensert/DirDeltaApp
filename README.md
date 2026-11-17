@@ -18,9 +18,11 @@ Node.js ve Electron'un desteklediği bir masaüstü ortamı gerekir.
 3. **Karşılaştır** düğmesine basın.
 4. Her öğenin yanındaki okla o öğeyi diğer klasöre kopyalayın. Klasör oku, taranan alt öğeleri de kopyalar. **Eksikleri kopyala** düğmeleri, yalnızca kaynak tarafta bulunan öğeleri aktarır.
 
-Aynı göreli yollar iki bölmede hizalanır. Tüm içeriği karşı tarafta eksik olan klasörler kapalı gösterilir; satıra tıklayarak alt öğeleri açıp kapatabilirsiniz. Klasörün kopyalama oku tüm taranan içeriği aktarır. Arama kapalı klasörlerin içini de kapsar ve eşleşen yolları açarak gösterir. Sayaçlar, kapalı klasörlerin içindeki öğeler dahil tüm taramayı kapsar. Arama yalnızca görünümü etkiler; toplu kopyalama bütün karşılaştırmadaki eksikleri kapsar. Dosya adına tıklamak dosya yöneticisinde konumunu gösterir.
+Liste yalnızca eksik, farklı veya türü çakışan öğeleri gösterir. İki tarafta bulunan üst klasörler, içlerinde fark olsa bile ayrıca listelenmez; farklar tam göreli yollarıyla gösterilir. Yalnızca bir tarafta bulunan klasörler ve dosya/klasör türü çakışmaları listelenmeye devam eder. Aynı veya hızlı modda aynı boyutta olan dosyalar, kökte ya da alt klasörlerde bulunmaları fark etmeksizin gizlenir. Görünür fark içermeyen klasörler de gizlenir. Arama farkların tam göreli yollarını kapsar. “Aynı / doğrulanmamış” sayacı yoktur; toplam öğe sayısı tüm taramayı kapsar.
 
-- **Hızlı mod:** Dosya boyutları farklıysa “Boyut farklı”; aynıysa “Doğrulanmadı” gösterilir. Aynı boyut, içeriğin aynı olduğunu kanıtlamaz.
+Tüm içeriği karşı tarafta eksik olan klasörler kapalı gösterilir; satıra tıklayarak açabilirsiniz. Klasörün kopyalama oku tüm taranan içeriği aktarır. Toplu kopyalama bütün karşılaştırmadaki eksikleri kapsar. Dosya adına tıklamak dosya yöneticisinde konumunu gösterir.
+
+- **Hızlı mod:** Yol, tür ve dosya boyutu farklarını gösterir. Aynı boyutlu dosyalar listelenmez; içeriklerinin aynı olduğu varsayılmaz. Boyut farkı içeren klasörler görünür kalır.
 - **SHA-256:** İki tarafta bulunan dosyaların tamamının içerikleri okunur ve hash'leri karşılaştırılır. Kopyalanan dosyanın içeriği de hedefe yerleştirilmeden önce doğrulanır. Büyük dosyalarda işlem daha uzun sürebilir.
 - Gizli dosyalar ve boş klasörler dahildir. Sembolik bağlantılar ve özel dosyalar kopyalanmaz; “Dahil edilmeyen öğeler” bölümünde nedenleri açıklanır. Okuma hataları ayrı listelenir: öğenin tarafı ve yolu, hatanın nedeni ve önerilen çözüm gösterilir. “Sonuçlar eksik olabilir” yalnızca okuma hatasında belirtilir. SHA-256 sırasında okuma hatası olursa karşılaştırma durdurulur.
 - Dosya/klasör türü çakışmaları otomatik çözülmez. Aynı veya iç içe kök klasörler kabul edilmez.
