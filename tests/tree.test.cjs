@@ -43,3 +43,11 @@ test('handles Windows separators and preserves literal backslashes in Unix filen
   const unix = [row('a', dir, undefined, 'left-only'), row('a\\file', file, undefined, 'left-only')]
   assert.deepEqual(paths(create(unix, '/').visible(new Set())), ['a', 'a\\file'])
 })
+
+test('bulk selection removes descendants using the root platform separator', () => {
+  const rows = [row('a', dir, undefined, 'left-only'), row('a/file', file, undefined, 'left-only'), row('a\\file', file, undefined, 'left-only')]
+  assert.deepEqual(Array.from(context.DirDeltaTree.missingPaths(rows, 'left', '/')), ['a', 'a\\file'])
+  const windows = [row('a', dir, undefined, 'left-only'), row('a\\file', file, undefined, 'left-only')]
+  assert.deepEqual(Array.from(context.DirDeltaTree.missingPaths(windows, 'left', '\\')), ['a'])
+  assert.deepEqual(Array.from(context.DirDeltaTree.missingPaths(rows, 'right', '/')), [])
+})

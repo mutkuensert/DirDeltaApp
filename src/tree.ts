@@ -2,7 +2,20 @@
 namespace DirDeltaTree {
   type Row = import('./types').Row
   export interface Item { row: Row; depth: number; grouped: boolean; open: boolean; descendants: number }
-  export function create(rows: Row[], separator: string) {
+  export function missingPaths(rows: readonly Row[], side: import('./types').Side, separator: string): string[] {
+    const missing = rows.filter(row => row.status === `${side}-only`)
+    const selected = new Set(missing.map(row => row.path))
+    return missing.filter(row => {
+      const parts = row.path.split(separator)
+      parts.pop()
+      while (parts.length) {
+        if (selected.has(parts.join(separator))) return false
+        parts.pop()
+      }
+      return true
+    }).map(row => row.path)
+  }
+  export function create(rows: readonly Row[], separator: string) {
     const byPath = new Map(rows.map(row => [row.path, row]))
     const children = new Map<string, Row[]>()
     const summaries = new Map<string, { count: number; left: boolean; right: boolean }>()
@@ -26,7 +39,7 @@ namespace DirDeltaTree {
       else if (row.right?.kind === 'directory' && !summary.left) groups.set(row.path, 'right-only')
     }
     return {
-      visible(expanded: Set<string>, query = ''): Item[] {
+      visible(expanded: ReadonlySet<string>, query = ''): Item[] {
         const matching = new Set<string>()
         if (query) for (const row of rows) {
           if (!row.path.toLocaleLowerCase('tr').includes(query)) continue

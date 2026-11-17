@@ -37,4 +37,22 @@ npm test
 npm run test:ui
 ```
 
-Dosya sistemi erişimi ana süreçte, dar bir IPC arayüzü üzerinden yapılır. Renderer Node.js erişimi olmadan, sandbox ve context isolation açık çalışır. `src/engine.ts` tarama, SHA-256, yol kontrolleri ve kopyalama işlemlerini içerir. `dirdelta_bash_script/` özgün komut satırı aracıdır.
+Dosya sistemi erişimi ana süreçte, dar bir IPC arayüzü üzerinden yapılır. Renderer Node.js erişimi olmadan, sandbox ve context isolation açık çalışır. `src/engine.ts` mevcut motor API’sini koruyan dışa aktarım noktasıdır. `dirdelta_bash_script/` özgün komut satırı aracıdır.
+
+
+### Kaynak kodu sorumlulukları
+
+- `src/main.ts`: Electron başlangıcı, pencere oluşturma ve bağımlılıkların bağlanması.
+- `src/desktop/ipc.ts`: IPC girdilerinin ve gönderen pencerenin doğrulanması; oturum komutlarına aktarılması.
+- `src/application/`: Electron ve dosya sisteminden bağımsız karşılaştırma kuralları, bağımlılık sözleşmeleri ve pencere başına işlem oturumu.
+- `src/filesystem/`: tarama, dosya okuma hataları, güvenli yol çözümleme, SHA-256 ve atomik dosya kopyalama.
+- `src/types.ts`: katmanların paylaştığı salt okunur sonuçlar ve masaüstü API sözleşmesi.
+- `src/renderer.ts`: kullanıcı eylemleri, ekran durumu ve API çağrıları.
+- `src/presentation/view.ts`: sonuç satırları, sayaçlar ve uyarıların DOM çizimi.
+- `src/tree.ts`: klasör gruplama, arama ve platformun yol ayırıcısına göre toplu seçim.
+
+Uygulama katmanı altyapıyı içe aktarmaz; `main.ts` somut dosya sistemi işlemlerini oturuma geçirir. Oturum klasör seçimi dahil eşzamanlı komutları engeller, iptali sahiplenir ve pencere kapandığında sonlandırılır. Kopyalama başarılı, başarısız veya onaydan vazgeçilmiş olsa da karşılaştırma geçersizleşir; arayüz yeniden tarar.
+
+Renderer sandbox içinde CommonJS yükleyicisi olmadan çalıştığı için tarayıcı kodu ad alanlarıyla derlenir. `index.html` yükleme sırası `tree`, `presentation/view`, `renderer` şeklindedir. Yeni bir paket veya derleme aracı gerekmez.
+
+`npm test` dosya sistemi entegrasyonlarını, saf ağaç davranışını ve oturumun eşzamanlılık/iptal yaşam döngüsünü doğrular. `npm run test:ui` gerçek Electron penceresi, preload ve IPC üzerinden temel kullanıcı akışını çalıştırır; masaüstü oturumu gerektirir. Özgün Bash aracı bağımsızdır; sözdizimi `bash -n dirdelta_bash_script/dirdelta` ile kontrol edilebilir.
