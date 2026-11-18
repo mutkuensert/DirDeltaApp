@@ -29,6 +29,8 @@ app.whenReady().then(async () => {
     }
     await new Promise(resolve => { if (!win.webContents.isLoading()) resolve(); else win.webContents.once('did-finish-load', resolve) })
     const run = code => win.webContents.executeJavaScript(code)
+    if (!await run("document.documentElement.lang === 'en' && document.getElementById('compare').textContent.includes('Compare') && document.querySelector('label.visibility-filter').textContent.includes('Hide hidden folders and files')")) throw new Error('English UI labels or language metadata are missing')
+
     const wait = async expression => {
       while (!await run(expression)) {
         if (Date.now() > deadline) throw new Error(`Timed out: ${expression}`)
@@ -41,7 +43,7 @@ app.whenReady().then(async () => {
     await wait("!document.getElementById('compare').disabled")
     await run("document.getElementById('sha256').click(); document.getElementById('compare').click()")
     await wait("document.querySelectorAll('.result-row').length === 3 && !document.getElementById('compare').disabled")
-    if (!await run("document.getElementById('warnings-summary').textContent.includes('Okuma hatası yok') && !document.getElementById('warnings-summary').textContent.includes('eksik olabilir')")) throw new Error('Intentional exclusions are ambiguous')
+    if (!await run("document.getElementById('warnings-summary').textContent.includes('No read errors') && !document.getElementById('warnings-summary').textContent.includes('may be incomplete')")) throw new Error('Intentional exclusions are ambiguous')
     await run("document.getElementById('warnings-info').click()")
     await wait("document.getElementById('warnings-explanation').open")
     await run("document.querySelector('#warnings-explanation button').click()")
@@ -69,10 +71,10 @@ app.whenReady().then(async () => {
     await wait("document.getElementById('stat-different').textContent === '0' && !document.getElementById('compare').disabled")
     if (await fs.readFile(path.join(left, 'changed.txt'), 'utf8') !== 'right') throw new Error('Per-row reverse copy failed')
     await run("document.getElementById('search').value = ''; document.getElementById('search').dispatchEvent(new Event('input'))")
-    await wait("document.querySelectorAll('.result-row').length === 0 && document.querySelector('.empty h3').textContent === 'Fark bulunamadı'")
+    await wait("document.querySelectorAll('.result-row').length === 0 && document.querySelector('.empty h3').textContent === 'No differences found'")
     if (await run("Boolean(document.getElementById('stat-same') || document.getElementById('same-label'))")) throw new Error('Same/unverified summary is still present')
     await run("document.getElementById('sha256').click(); document.getElementById('compare').click()")
-    await wait("!document.getElementById('compare').disabled && document.querySelector('.empty h3')?.textContent === 'Fark bulunamadı'")
+    await wait("!document.getElementById('compare').disabled && document.querySelector('.empty h3')?.textContent === 'No differences found'")
     if (await run("document.querySelectorAll('.result-row').length") !== 0) throw new Error('Unchecked files remain visible in fast mode')
     const originalReaddir = fs.readdir
     fs.readdir = async (directory, options) => {
@@ -80,9 +82,9 @@ app.whenReady().then(async () => {
       return originalReaddir(directory, options)
     }
     await run("document.getElementById('compare').click()")
-    await wait("!document.getElementById('compare').disabled && document.getElementById('warnings-summary').textContent.includes('1 öğe okunamadı')")
+    await wait("!document.getElementById('compare').disabled && document.getElementById('warnings-summary').textContent.includes('1 item could not be read')")
     fs.readdir = originalReaddir
-    if (!await run("document.getElementById('warnings-list').textContent.includes('erişim izni yok') && document.getElementById('warnings-list').textContent.includes('EACCES') && document.getElementById('warnings-summary').textContent.includes('sonuçlar eksik olabilir')")) throw new Error('Read-error explanation failed')
+    if (!await run("document.getElementById('warnings-list').textContent.includes('Access to this item is denied') && document.getElementById('warnings-list').textContent.includes('EACCES') && document.getElementById('warnings-summary').textContent.includes('results may be incomplete')")) throw new Error('Read-error explanation failed')
     await fs.writeFile(path.join(left, '.env'), 'hidden file')
     await fs.mkdir(path.join(left, '.hidden'))
     await fs.writeFile(path.join(left, '.hidden/file'), 'hidden content')
@@ -91,7 +93,7 @@ app.whenReady().then(async () => {
     if (!await run("Boolean(document.querySelector('[data-path=\".env\"]'))")) throw new Error('Hidden file not initially visible')
     const totalBeforeFilter = await run("document.getElementById('stat-total').textContent")
     await run("document.getElementById('hide-hidden-items').click()")
-    await wait("document.querySelectorAll('.result-row').length === 0 && document.querySelector('.empty h3').textContent.includes('Gizli öğe filtresi')")
+    await wait("document.querySelectorAll('.result-row').length === 0 && document.querySelector('.empty h3').textContent.includes('hidden-item filter')")
     if (await run("document.getElementById('stat-total').textContent") !== totalBeforeFilter) throw new Error('View filter changed scan totals')
     await run("document.getElementById('hide-hidden-items').click()")
     await wait("document.querySelector('[data-path=\".hidden\"]') !== null && document.querySelector('[data-path=\".env\"]') !== null")

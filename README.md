@@ -1,39 +1,39 @@
 # DirDelta Desktop
 
-Electron ve TypeScript ile iki yönlü klasör karşılaştırma uygulaması. Arayüz Türkçedir; tüm işlemler bilgisayar üzerinde yapılır.
+A bidirectional folder comparison app built with Electron and TypeScript. The interface is in English, and all operations run locally.
 
-## Çalıştırma
+## Getting started
 
 ```sh
 npm install
 npm start
 ```
 
-Node.js ve Electron'un desteklediği bir masaüstü ortamı gerekir.
+Requires Node.js and a desktop environment supported by Electron.
 
-## Kullanım
+## Usage
 
-1. Sol ve sağ klasörü seçin.
-2. İsterseniz **SHA-256 ile doğrula** seçeneğini açın.
-3. **Karşılaştır** düğmesine basın.
-4. Her öğenin yanındaki okla o öğeyi diğer klasöre kopyalayın. Klasör oku, taranan alt öğeleri de kopyalar. **Eksikleri kopyala** düğmeleri, yalnızca kaynak tarafta bulunan öğeleri aktarır.
+1. Select the left and right folders.
+2. Optionally enable **Verify with SHA-256**.
+3. Click **Compare**.
+4. Use the arrow next to an item to copy it to the other folder. A folder arrow copies its scanned descendants as well. **Copy missing** buttons transfer only items present on the source side and missing on the destination side.
 
-Liste yalnızca eksik, farklı veya türü çakışan öğeleri gösterir. İki tarafta bulunan üst klasörler, içlerinde fark olsa bile ayrıca listelenmez; farklar tam göreli yollarıyla gösterilir. Yalnızca bir tarafta bulunan klasörler ve dosya/klasör türü çakışmaları listelenmeye devam eder. Aynı veya hızlı modda aynı boyutta olan dosyalar, kökte ya da alt klasörlerde bulunmaları fark etmeksizin gizlenir. Görünür fark içermeyen klasörler de gizlenir. Arama farkların tam göreli yollarını kapsar. “Aynı / doğrulanmamış” sayacı yoktur; toplam öğe sayısı tüm taramayı kapsar.
+The list shows only missing, different, or type-conflicting items. Parent folders present on both sides are omitted even when their contents differ; differences appear with their full relative paths. Folders present on only one side and file/folder type conflicts remain visible. Identical files and files with matching sizes in quick mode are hidden at every level. Folders with no visible differences are also hidden. Search matches the full relative paths of differences. There is no identical/unverified counter; the total item count covers the entire scan.
 
-**Gizli klasörleri ve dosyaları gizle** kutusu, noktayla başlayan dosyaları (`.env` gibi), klasörleri (`.git` gibi) ve alt içeriklerini listeden ve aramadan gizler. Varsayılan olarak kapalıdır ve yeniden tarama gerektirmez. Sayaçları, taramayı ve kopyalama kapsamını değiştirmez; Windows gizli özniteliğini temel almaz.
+**Hide hidden folders and files** hides dot-prefixed files (such as `.env`), folders (such as `.git`), and their contents from the list and search results. It is off by default and does not require rescanning. It does not change counters, scanning, or what gets copied, and it does not use the Windows hidden attribute.
 
-Tüm içeriği karşı tarafta eksik olan klasörler kapalı gösterilir; satıra tıklayarak açabilirsiniz. Klasörün kopyalama oku tüm taranan içeriği aktarır. Toplu kopyalama bütün karşılaştırmadaki eksikleri kapsar. Dosya adına tıklamak dosya yöneticisinde konumunu gösterir.
+Folders whose entire contents are missing on the other side start collapsed; click a row to expand it. A folder copy arrow transfers all its scanned contents. Bulk copying includes missing items from the entire comparison. Clicking a file name reveals it in the system file manager.
 
-- **Hızlı mod:** Yol, tür ve dosya boyutu farklarını gösterir. Aynı boyutlu dosyalar listelenmez; içeriklerinin aynı olduğu varsayılmaz. Boyut farkı içeren klasörler görünür kalır.
-- **SHA-256:** İki tarafta bulunan dosyaların tamamının içerikleri okunur ve hash'leri karşılaştırılır. Kopyalanan dosyanın içeriği de hedefe yerleştirilmeden önce doğrulanır. Büyük dosyalarda işlem daha uzun sürebilir.
-- Gizli dosyalar ve boş klasörler dahildir. Sembolik bağlantılar ve özel dosyalar kopyalanmaz; “Dahil edilmeyen öğeler” bölümünde nedenleri açıklanır. Okuma hataları ayrı listelenir: öğenin tarafı ve yolu, hatanın nedeni ve önerilen çözüm gösterilir. “Sonuçlar eksik olabilir” yalnızca okuma hatasında belirtilir. SHA-256 sırasında okuma hatası olursa karşılaştırma durdurulur.
-- Dosya/klasör türü çakışmaları otomatik çözülmez. Aynı veya iç içe kök klasörler kabul edilmez.
-- Var olan dosyaların üzerine yazma, yerel onay penceresi gerektirir. Silme ve otomatik eşitleme yapılmaz.
-- Dosyalar hedef klasörde geçici dosyaya yazılır; tamamlanınca hedefe yerleştirilir. Dosya değiştirme atomiktir, tüm toplu işlem tek bir işlem değildir. Hata veya iptal durumunda tamamlanan kopyalar kalır. Kopyalama sonrasında görünüm yeniden taranır.
-- Kopyalama dosya içeriğini, standart izin bitlerini ve dosyanın zaman bilgilerini korur. ACL, genişletilmiş öznitelikler ve klasör zaman bilgileri korunmaz.
-- Sonuçlar tarama anını yansıtır. İşlem sırasında başka uygulamalarla kaynak/hedef klasörlerini değiştirmeyin; harici değişiklikler için yeniden karşılaştırın.
+- **Quick mode:** Shows path, type, and file-size differences. Files with matching sizes are not listed, but their contents are not assumed to be identical. Size differences remain visible without separate parent folder rows.
+- **SHA-256:** Reads the contents of every file present on both sides and compares their hashes. Copied content is also verified before being placed at the destination. Large files can take longer.
+- Hidden files and empty folders are included in scanning. Symbolic links and special files are not copied; their reasons appear under **Excluded items**. Read errors are listed separately with the side, path, cause, and suggested action. **Results may be incomplete** is shown only for read errors. A read error during SHA-256 calculation stops the comparison.
+- File/folder type conflicts are not resolved automatically. Identical or nested root folders are rejected.
+- Overwriting existing files requires confirmation in a native dialog. The app does not delete files or synchronize automatically.
+- Files are written to temporary files in the destination folder and placed at their final paths when complete. Individual file replacement is atomic; an entire batch is not a single transaction. Completed copies remain after errors or cancellation. The view is rescanned after copying.
+- Copying preserves file contents, standard permission bits, and file timestamps. ACLs, extended attributes, and folder timestamps are not preserved.
+- Results reflect the scan time. Avoid modifying source or destination folders in other applications during an operation. Compare again after external changes.
 
-## Geliştirme
+## Development
 
 ```sh
 npm run typecheck
@@ -41,22 +41,21 @@ npm test
 npm run test:ui
 ```
 
-Dosya sistemi erişimi ana süreçte, dar bir IPC arayüzü üzerinden yapılır. Renderer Node.js erişimi olmadan, sandbox ve context isolation açık çalışır. `src/engine.ts` mevcut motor API’sini koruyan dışa aktarım noktasıdır. `dirdelta_bash_script/` özgün komut satırı aracıdır.
+File-system access runs in the main process through a narrow IPC interface. The renderer runs without Node.js access, with sandboxing and context isolation enabled. `src/engine.ts` preserves the existing engine API through re-exports. `dirdelta_bash_script/` contains the original command-line tool.
 
+### Source responsibilities
 
-### Kaynak kodu sorumlulukları
+- `src/main.ts`: Electron startup, window creation, and dependency wiring.
+- `src/desktop/ipc.ts`: IPC input and sender validation, followed by delegation to session commands.
+- `src/application/`: Comparison rules, dependency contracts, and a per-window operation session, independent of Electron and the file system.
+- `src/filesystem/`: Scanning, file-read errors, safe path resolution, SHA-256, and atomic file copying.
+- `src/types.ts`: Shared read-only results and the desktop API contract.
+- `src/renderer.ts`: User actions, screen state, and API calls.
+- `src/presentation/view.ts`: DOM rendering for result rows, counters, and warnings.
+- `src/tree.ts`: Folder grouping, search, visibility filtering, and bulk selection using the platform path separator.
 
-- `src/main.ts`: Electron başlangıcı, pencere oluşturma ve bağımlılıkların bağlanması.
-- `src/desktop/ipc.ts`: IPC girdilerinin ve gönderen pencerenin doğrulanması; oturum komutlarına aktarılması.
-- `src/application/`: Electron ve dosya sisteminden bağımsız karşılaştırma kuralları, bağımlılık sözleşmeleri ve pencere başına işlem oturumu.
-- `src/filesystem/`: tarama, dosya okuma hataları, güvenli yol çözümleme, SHA-256 ve atomik dosya kopyalama.
-- `src/types.ts`: katmanların paylaştığı salt okunur sonuçlar ve masaüstü API sözleşmesi.
-- `src/renderer.ts`: kullanıcı eylemleri, ekran durumu ve API çağrıları.
-- `src/presentation/view.ts`: sonuç satırları, sayaçlar ve uyarıların DOM çizimi.
-- `src/tree.ts`: klasör gruplama, arama ve platformun yol ayırıcısına göre toplu seçim.
+The application layer does not import infrastructure. `main.ts` injects concrete file-system operations into the session. The session prevents concurrent commands, including folder selection, owns cancellation, and is disposed when its window closes. Copying invalidates the comparison whether it succeeds, fails, or is declined at confirmation; the UI rescans afterward.
 
-Uygulama katmanı altyapıyı içe aktarmaz; `main.ts` somut dosya sistemi işlemlerini oturuma geçirir. Oturum klasör seçimi dahil eşzamanlı komutları engeller, iptali sahiplenir ve pencere kapandığında sonlandırılır. Kopyalama başarılı, başarısız veya onaydan vazgeçilmiş olsa da karşılaştırma geçersizleşir; arayüz yeniden tarar.
+Browser code uses namespaces because the sandboxed renderer has no CommonJS loader. Scripts load in this order in `index.html`: `tree`, `presentation/view`, `renderer`. No additional package or build tool is required. UI dates use `en-US`; search and sorting use the English locale. File names and paths retain their original text.
 
-Renderer sandbox içinde CommonJS yükleyicisi olmadan çalıştığı için tarayıcı kodu ad alanlarıyla derlenir. `index.html` yükleme sırası `tree`, `presentation/view`, `renderer` şeklindedir. Yeni bir paket veya derleme aracı gerekmez.
-
-`npm test` dosya sistemi entegrasyonlarını, saf ağaç davranışını ve oturumun eşzamanlılık/iptal yaşam döngüsünü doğrular. `npm run test:ui` gerçek Electron penceresi, preload ve IPC üzerinden temel kullanıcı akışını çalıştırır; masaüstü oturumu gerektirir. Özgün Bash aracı bağımsızdır; sözdizimi `bash -n dirdelta_bash_script/dirdelta` ile kontrol edilebilir.
+`npm test` covers file-system integrations, pure tree behavior, and session concurrency/cancellation. `npm run test:ui` exercises the main user flows through a real Electron window, preload, and IPC; it requires a desktop session. The original Bash tool is independent; check its syntax with `bash -n dirdelta_bash_script/dirdelta`.

@@ -17,17 +17,17 @@ function createWindow() {
   const session = new DirectorySession(directories, {
     async selectFolder(side, current) {
       const result = await dialog.showOpenDialog(window, {
-        title: side === 'left' ? 'Sol klasörü seç' : 'Sağ klasörü seç',
+        title: side === 'left' ? 'Select the left folder' : 'Select the right folder',
         properties: ['openDirectory'], defaultPath: current
       })
       return result.canceled ? null : result.filePaths[0] ?? null
     },
     async confirmOverwrite(comparison, side, items) {
       const result = await dialog.showMessageBox(window, {
-        type: 'warning', title: 'Dosyaların üzerine yazılsın mı?',
-        message: `${items.length} dosyanın üzerine yazılacak.`,
-        detail: `Kaynak: ${comparison.roots[side]}\nHedef: ${comparison.roots[side === 'left' ? 'right' : 'left']}\n\n${items.slice(0, 8).map(item => item.relative).join('\n')}\n\nBu işlem geri alınamaz.`,
-        buttons: ['Vazgeç', 'Üzerine yaz'], defaultId: 0, cancelId: 0, noLink: true
+        type: 'warning', title: 'Overwrite files?',
+        message: `${items.length} ${items.length === 1 ? 'file' : 'files'} will be overwritten.`,
+        detail: `Source: ${comparison.roots[side]}\nDestination: ${comparison.roots[side === 'left' ? 'right' : 'left']}\n\n${items.slice(0, 8).map(item => item.relative).join('\n')}\n\nThis operation cannot be undone.`,
+        buttons: ['Cancel', 'Overwrite'], defaultId: 0, cancelId: 0, noLink: true
       })
       return result.response === 1
     },

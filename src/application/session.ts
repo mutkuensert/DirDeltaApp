@@ -11,8 +11,8 @@ export class DirectorySession {
   constructor(private readonly directories: DirectoryOperations, private readonly interaction: SessionInteraction) {}
 
   private async run<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T> {
-    if (this.disposed) throw new Error('Pencere kapatıldı.')
-    if (this.operation) throw new Error('Devam eden işlemin bitmesini bekleyin.')
+    if (this.disposed) throw new Error('The window has been closed.')
+    if (this.operation) throw new Error('Wait for the current operation to finish.')
     const operation = new AbortController()
     this.operation = operation
     try {
@@ -39,7 +39,7 @@ export class DirectorySession {
   compare(sha256: boolean) {
     return this.run(async signal => {
       const { left, right } = this.roots
-      if (!left || !right) throw new Error('Önce iki klasör seçin.')
+      if (!left || !right) throw new Error('Select two folders first.')
       this.comparison = undefined
       const result = await this.directories.compareDirectories(left, right, sha256, signal, this.interaction.progress)
       signal.throwIfAborted()
@@ -51,7 +51,7 @@ export class DirectorySession {
   copy(side: Side, paths: readonly string[]) {
     return this.run(async signal => {
       const current = this.comparison
-      if (!current) throw new Error('Önce klasörleri karşılaştırın.')
+      if (!current) throw new Error('Compare the folders first.')
       try {
         const items = await this.directories.planCopy(current, side, paths)
         signal.throwIfAborted()
@@ -71,7 +71,7 @@ export class DirectorySession {
 
   async reveal(side: Side, relative: string) {
     const root = this.comparison?.roots[side]
-    if (!root || this.disposed) throw new Error('Önce karşılaştırma yapın.')
+    if (!root || this.disposed) throw new Error('Run a comparison first.')
     const absolute = await this.directories.safePath(root, relative)
     if (!this.disposed) this.interaction.reveal(absolute)
   }

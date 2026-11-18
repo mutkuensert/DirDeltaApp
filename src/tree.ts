@@ -49,7 +49,7 @@ namespace DirDeltaTree {
         const excluded = (relative: string) => hidden.has(relative) || (hideHiddenItems && hiddenItems.has(relative))
         const matching = new Set<string>()
         if (query) for (const row of rows) {
-          if (excluded(row.path) || !row.path.toLocaleLowerCase('tr').includes(query)) continue
+          if (excluded(row.path) || !row.path.toLocaleLowerCase('en').includes(query)) continue
           matching.add(row.path)
           for (let ancestor = parent(row.path); ancestor; ancestor = parent(ancestor)) matching.add(ancestor)
         }

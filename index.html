@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
-  <title>DirDelta — Klasör karşılaştırma</title>
+  <title>DirDelta — Folder comparison</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,37 +12,37 @@
     <div class="brand"><span class="brand-icon">⇄</span><div><h1>DirDelta<span class="version">DESKTOP</span></h1></div></div>
   </header>
   <main>
-    <section class="intro"><div><p>Klasörlerini seç, farkları incele ve istediğin yönde kopyala.</p></div><button id="compare" class="primary" disabled>⇄ &nbsp; Karşılaştır</button></section>
+    <section class="intro"><div><p>Choose your folders, review differences, and copy in either direction.</p></div><button id="compare" class="primary" disabled>⇄ &nbsp; Compare</button></section>
     <section class="folders">
-      <button class="folder-card" id="select-left"><span class="folder-icon">▱</span><span class="folder-content"><span class="eyebrow">SOL KLASÖR</span><span class="folder-path" id="path-left">Bir klasör seç</span></span><span class="folder-action">Seç ↗</span></button>
+      <button class="folder-card" id="select-left"><span class="folder-icon">▱</span><span class="folder-content"><span class="eyebrow">LEFT FOLDER</span><span class="folder-path" id="path-left">Choose a folder</span></span><span class="folder-action">Choose ↗</span></button>
       <span class="between">⇄</span>
-      <button class="folder-card" id="select-right"><span class="folder-icon right">▱</span><span class="folder-content"><span class="eyebrow">SAĞ KLASÖR</span><span class="folder-path" id="path-right">Bir klasör seç</span></span><span class="folder-action">Seç ↗</span></button>
+      <button class="folder-card" id="select-right"><span class="folder-icon right">▱</span><span class="folder-content"><span class="eyebrow">RIGHT FOLDER</span><span class="folder-path" id="path-right">Choose a folder</span></span><span class="folder-action">Choose ↗</span></button>
     </section>
-    <section class="options"><label class="switch"><input type="checkbox" id="sha256"><span class="track"></span><strong>SHA-256 ile doğrula</strong></label><span class="option-description" id="mode-description">Hızlı karşılaştırma · yol ve dosya boyutu</span><label class="visibility-filter" title="Noktayla başlayan dosyaları, klasörleri ve alt içeriklerini yalnızca görünümde gizler. Kopyalama kapsamını değiştirmez."><input type="checkbox" id="hide-hidden-items"> Gizli klasörleri ve dosyaları gizle</label><span class="hint">Gizli dosyalar dahil · Alt klasörler dahil</span></section>
+    <section class="options"><label class="switch"><input type="checkbox" id="sha256"><span class="track"></span><strong>Verify with SHA-256</strong></label><span class="option-description" id="mode-description">Quick comparison · path and file size</span><label class="visibility-filter" title="Hides dot-prefixed files, folders, and their contents from view only. Does not change what gets copied."><input type="checkbox" id="hide-hidden-items"> Hide hidden folders and files</label><span class="hint">Includes hidden files and subfolders</span></section>
     <section class="workspace">
-      <div class="toolbar"><div class="stats" aria-label="Karşılaştırma özeti"><div><span class="stat-dot all"></span><span>Toplam öğe</span><strong id="stat-total">—</strong></div><div><span class="stat-dot left"></span><span>Yalnızca solda</span><strong id="stat-left">—</strong></div><div><span class="stat-dot right"></span><span>Yalnızca sağda</span><strong id="stat-right">—</strong></div><div><span class="stat-dot different"></span><span>Farklı / çakışan</span><strong id="stat-different">—</strong></div></div><input type="search" id="search" placeholder="Dosya veya klasör ara…" aria-label="Dosya veya klasör ara"></div>
-      <div class="pane-heads"><div><span class="pane-dot left"></span><strong>Sol klasör</strong><button id="bulk-left" disabled>Eksikleri sağa kopyala →</button></div><div><span class="pane-dot right"></span><strong>Sağ klasör</strong><button id="bulk-right" disabled>← Eksikleri sola kopyala</button></div></div>
-      <div class="column-heads"><div><span>AD / GÖRELİ YOL</span><span>BOYUT</span><span>İŞLEM</span></div><div><span>AD / GÖRELİ YOL</span><span>BOYUT</span><span>İŞLEM</span></div></div>
-      <div id="results" class="results"><div class="empty"><span class="empty-symbol">▱ ⇄ ▱</span><h3>Karşılaştırmaya hazır</h3><p>Başlamak için sol ve sağ klasörleri seç.<br>Dosyalar aynı göreli yol üzerinden karşılaştırılır.</p></div></div>
-      <div class="results-footer"><span id="result-count">Henüz karşılaştırma yapılmadı</span><span><i class="legend-dot"></i> Her satırdaki ok ile karşı tarafa kopyala</span></div>
+      <div class="toolbar"><div class="stats" aria-label="Comparison summary"><div><span class="stat-dot all"></span><span>Total items</span><strong id="stat-total">—</strong></div><div><span class="stat-dot left"></span><span>Only on the left</span><strong id="stat-left">—</strong></div><div><span class="stat-dot right"></span><span>Only on the right</span><strong id="stat-right">—</strong></div><div><span class="stat-dot different"></span><span>Different / conflicting</span><strong id="stat-different">—</strong></div></div><input type="search" id="search" placeholder="Search files or folders…" aria-label="Search files or folders"></div>
+      <div class="pane-heads"><div><span class="pane-dot left"></span><strong>Left folder</strong><button id="bulk-left" disabled>Copy missing to right →</button></div><div><span class="pane-dot right"></span><strong>Right folder</strong><button id="bulk-right" disabled>← Copy missing to left</button></div></div>
+      <div class="column-heads"><div><span>NAME / RELATIVE PATH</span><span>SIZE</span><span>ACTION</span></div><div><span>NAME / RELATIVE PATH</span><span>SIZE</span><span>ACTION</span></div></div>
+      <div id="results" class="results"><div class="empty"><span class="empty-symbol">▱ ⇄ ▱</span><h3>Ready to compare</h3><p>Choose the left and right folders to get started.<br>Files are compared by their relative paths.</p></div></div>
+      <div class="results-footer"><span id="result-count">No comparison yet</span><span><i class="legend-dot"></i> Use the arrow on each row to copy to the other side</span></div>
     </section>
-    <section id="warnings" class="warnings" aria-label="Karşılaştırma uyarıları" hidden>
-      <div class="warnings-header"><strong id="warnings-summary"></strong><button id="warnings-info" class="info-button" type="button" aria-label="Atlanan ve okunamayan öğeler hakkında bilgi" aria-haspopup="dialog" aria-controls="warnings-explanation"><span aria-hidden="true">ⓘ</span> Açıklama</button></div>
+    <section id="warnings" class="warnings" aria-label="Comparison warnings" hidden>
+      <div class="warnings-header"><strong id="warnings-summary"></strong><button id="warnings-info" class="info-button" type="button" aria-label="Information about skipped and unreadable items" aria-haspopup="dialog" aria-controls="warnings-explanation"><span aria-hidden="true">ⓘ</span> Details</button></div>
       <div id="warnings-list" class="warnings-list"></div>
     </section>
     <dialog id="warnings-explanation" class="info-dialog" aria-labelledby="warnings-title" aria-describedby="warnings-description">
-      <h2 id="warnings-title">Atlanan öğeler ve okuma hataları</h2>
-      <p id="warnings-description">DirDelta, dahil edilmeyen öğeler ile okunamayan öğeleri ayrı gösterir. Her kayıtta hangi tarafta olduğu, yolu, nedeni ve önerilen işlem bulunur.</p>
+      <h2 id="warnings-title">Skipped items and read errors</h2>
+      <p id="warnings-description">DirDelta lists excluded and unreadable items separately. Each entry includes its side, path, reason, and suggested action.</p>
       <ul>
-        <li><strong>Sembolik bağlantılar:</strong> Başka bir dosya veya klasöre işaret eder. Seçtiğiniz klasörlerin dışına çıkmamak ve aynı yolları tekrar tekrar taramamak için bu bağlantılar takip edilmez ve kopyalanmaz.</li>
-        <li><strong>Özel dosyalar:</strong> Soketler, adlandırılmış kanallar ve aygıt dosyaları gibi, normal dosya veya klasör olmayan öğeler karşılaştırılmaz ve kopyalanmaz.</li>
-        <li><strong>Okunamayan öğeler:</strong> Erişim izni olmayan, tarama sırasında silinen veya taşınan öğeler; disk ya da ağ bağlantısı kesintileri ve disk hataları nedeniyle okunamayan öğeler bu gruptadır. İzinleri ve bağlantıları kontrol edip yeniden karşılaştırın.</li>
+        <li><strong>Symbolic links:</strong> These point to another file or folder. Links are not followed or copied to avoid leaving the selected folders or scanning the same paths repeatedly.</li>
+        <li><strong>Special files:</strong> Items that are not regular files or folders, such as sockets, named pipes, and device files, are not compared or copied.</li>
+        <li><strong>Unreadable items:</strong> This includes items with insufficient permissions, items deleted or moved during scanning, and items affected by drive errors or drive/network disconnections. Check permissions and connections, then compare again.</li>
       </ul>
-      <p>Dahil edilmeyen öğeler bir okuma hatası değildir; karşılaştırma ve kopyalama kapsamı dışındadır. “Sonuçlar eksik olabilir” ifadesi yalnızca okuma hatası olduğunda gösterilir: okunamayan bir klasörün altındaki öğeler listelenemeyebilir. Klasör kopyalanırken de yalnızca başarıyla taranan öğeler aktarılır. Gizli dosyalar ve boş klasörler normal şekilde dahil edilir.</p>
-      <p>SHA-256 hesaplanırken bir dosya okunamazsa karşılaştırma durdurulur ve hata gösterilir; doğrulanamayan dosya “aynı” kabul edilmez.</p>
-      <form method="dialog"><button class="primary" type="submit">Anladım</button></form>
+      <p>Excluded items are not read errors; they are outside the comparison and copying scope. “Results may be incomplete” appears only for read errors: items inside an unreadable folder may not be listed. Copying a folder transfers only items that were successfully scanned. Hidden files and empty folders are normally included.</p>
+      <p>If a file cannot be read while calculating SHA-256, comparison stops and an error is shown; an unverified file is not treated as identical.</p>
+      <form method="dialog"><button class="primary" type="submit">Got it</button></form>
     </dialog>
-    <footer class="statusbar"><span id="status" role="status" aria-live="polite">Hazır. İki klasör seçerek başlayın.</span><button id="cancel" hidden>İşlemi iptal et</button><span id="verification">SHA-256 kapalı</span></footer>
+    <footer class="statusbar"><span id="status" role="status" aria-live="polite">Ready. Select two folders to get started.</span><button id="cancel" hidden>Cancel operation</button><span id="verification">SHA-256 disabled</span></footer>
   </main>
   <script src="./dist/tree.js"></script>
   <script src="./dist/presentation/view.js"></script>

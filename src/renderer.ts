@@ -26,7 +26,7 @@ interface Window { dirdelta: import('./types').DesktopAPI }
   function setBusy(value: boolean) { busy = value; updateControls() }
   function message(error: unknown) {
     const text = error instanceof Error ? error.message : String(error)
-    return /abort/i.test(text) ? 'İşlem iptal edildi. Tamamlanan kopyalar korundu; yeniden karşılaştırabilirsiniz.' : text.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+    return /abort/i.test(text) ? 'Operation cancelled. Completed copies were kept; you can compare again.' : text.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
   }
   const renderResults = DirDeltaView.createResults()
   function render() {
@@ -44,26 +44,26 @@ interface Window { dirdelta: import('./types').DesktopAPI }
   }
   async function compare() {
     if (busy || !hasLeft || !hasRight) return
-    setBusy(true); setStatus('Karşılaştırma başlatılıyor…')
+    setBusy(true); setStatus('Starting comparison…')
     data = undefined; el('warnings').hidden = true; render()
     try {
       data = await api.compare(sha.checked)
       tree = DirDeltaTree.create(data.rows, data.roots.left.startsWith('/') ? '/' : '\\')
       expandedFolders.clear()
       const { failed, skipped } = DirDeltaView.renderWarnings(data.warnings)
-      setStatus(`Karşılaştırma tamamlandı. ${data.rows.length} öğe incelendi.${failed ? ' Bazı öğeler okunamadı; sonuçlar eksik olabilir. Uyarıları inceleyin.' : skipped ? ' Dahil edilmeyen öğeler için bilgi alanını inceleyin.' : ''}`)
+      setStatus(`Comparison complete. ${data.rows.length} ${data.rows.length === 1 ? 'item' : 'items'} scanned.${failed ? ' Some items could not be read; results may be incomplete. Review the warnings.' : skipped ? ' Review the information panel for excluded items.' : ''}`)
     } catch (error) { setStatus(message(error)) }
     finally { setBusy(false); render() }
   }
   async function copyPaths(side: PanelSide, paths: string[]) {
     if (busy || !data) return
-    setBusy(true); setStatus('Kopyalama hazırlanıyor…')
+    setBusy(true); setStatus('Preparing to copy…')
     let resultMessage = ''
-    try { const result = await api.copy(side, paths); resultMessage = result.cancelled ? 'Kopyalamadan vazgeçildi.' : `${result.copied} öğe kopyalandı.` }
+    try { const result = await api.copy(side, paths); resultMessage = result.cancelled ? 'Copy cancelled.' : `${result.copied} ${result.copied === 1 ? 'item' : 'items'} copied.` }
     catch (error) { resultMessage = message(error) }
     finally { setBusy(false) }
     await compare()
-    setStatus(`${resultMessage} ${data ? 'Görünüm yenilendi.' : 'Güncel sonuçlar için yeniden karşılaştırın.'}`)
+    setStatus(`${resultMessage} ${data ? 'View refreshed.' : 'Compare again for up-to-date results.'}`)
   }
   for (const side of ['left', 'right'] as const) {
     el(`select-${side}`).addEventListener('click', async () => {
@@ -76,7 +76,7 @@ interface Window { dirdelta: import('./types').DesktopAPI }
         el(`path-${side}`).textContent = folder; el(`path-${side}`).title = folder
         el(`select-${side}`).title = folder
         data = undefined; el('warnings').hidden = true; render()
-        setStatus(hasLeft && hasRight ? 'Klasörler hazır. Karşılaştır düğmesine basın.' : 'Diğer klasörü seçin.')
+        setStatus(hasLeft && hasRight ? 'Folders are ready. Click Compare.' : 'Select the other folder.')
       } catch (error) { setStatus(message(error)) }
       finally { setBusy(false) }
     })
@@ -87,16 +87,16 @@ interface Window { dirdelta: import('./types').DesktopAPI }
   }
   el('warnings-info').addEventListener('click', () => el<HTMLDialogElement>('warnings-explanation').showModal())
   el('compare').addEventListener('click', () => void compare())
-  el('cancel').addEventListener('click', () => { setStatus('İptal ediliyor…'); void api.cancel().catch(error => setStatus(message(error))) })
+  el('cancel').addEventListener('click', () => { setStatus('Cancelling…'); void api.cancel().catch(error => setStatus(message(error))) })
   sha.addEventListener('change', () => {
     data = undefined; el('warnings').hidden = true; render()
-    el('mode-description').textContent = sha.checked ? 'İçerik karşılaştırması · Kopyalamada SHA-256 doğrulaması' : 'Hızlı karşılaştırma · yol ve dosya boyutu'
-    el('verification').textContent = sha.checked ? 'SHA-256 açık' : 'SHA-256 kapalı'
-    setStatus('Karşılaştırma yöntemi değişti. Yeniden karşılaştırın.')
+    el('mode-description').textContent = sha.checked ? 'Content comparison · SHA-256 verification when copying' : 'Quick comparison · path and file size'
+    el('verification').textContent = sha.checked ? 'SHA-256 enabled' : 'SHA-256 disabled'
+    setStatus('Comparison mode changed. Compare again.')
   })
-  el<HTMLInputElement>('search').addEventListener('input', event => { query = (event.target as HTMLInputElement).value.toLocaleLowerCase('tr'); render() })
+  el<HTMLInputElement>('search').addEventListener('input', event => { query = (event.target as HTMLInputElement).value.toLocaleLowerCase('en'); render() })
   let lastProgress = 0
-  const unsubscribeProgress = api.onProgress(progress => { if (Date.now() - lastProgress > 70) { setStatus(`${progress.phase} · ${progress.count} öğe · ${progress.path}`); lastProgress = Date.now() } })
+  const unsubscribeProgress = api.onProgress(progress => { if (Date.now() - lastProgress > 70) { setStatus(`${progress.phase} · ${progress.count} ${progress.count === 1 ? 'item' : 'items'} · ${progress.path}`); lastProgress = Date.now() } })
   updateControls()
   window.addEventListener('unload', unsubscribeProgress, { once: true })
 })()

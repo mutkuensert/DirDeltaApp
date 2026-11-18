@@ -23,12 +23,12 @@ export async function compareDirectories(left: string, right: string, sha256: bo
           if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) {
             const symlink = stat.isSymbolicLink()
             warnings.push({ kind: 'skipped', reason: symlink ? 'symlink' : 'special-file', side, path: absolute,
-              message: symlink ? 'Sembolik bağlantı: başka bir konuma işaret ettiği için takip edilmedi.' : 'Özel dosya: normal dosya veya klasör olmadığı için işleme dahil edilmedi.',
-              suggestion: symlink ? 'Gerekirse bağlantının işaret ettiği gerçek klasörü ayrı olarak seçin.' : 'Soket, kanal ve aygıt dosyaları karşılaştırılmaz veya kopyalanmaz.' })
+              message: symlink ? 'Symbolic link: not followed because it points to another location.' : 'Special file: excluded because it is not a regular file or folder.',
+              suggestion: symlink ? 'If needed, select the actual folder the link points to separately.' : 'Sockets, pipes, and device files are not compared or copied.' })
             continue
           }
           entries.set(rel, { kind: stat.isDirectory() ? 'directory' : 'file', size: stat.isFile() ? stat.size : 0, modified: stat.mtimeMs })
-          progress({ phase: 'Klasörler taranıyor', path: rel, count: ++count })
+          progress({ phase: 'Scanning folders', path: rel, count: ++count })
           if (stat.isDirectory()) await walk(rel)
         } catch (error) { if (signal.aborted) throw error; warnings.push({ kind: 'read-error', reason: 'read-failure', side, path: absolute, ...explainReadError(error) }) }
       }
@@ -37,16 +37,16 @@ export async function compareDirectories(left: string, right: string, sha256: bo
     catch (error) {
       if (signal.aborted) throw error
       const detail = explainReadError(error)
-      throw new Error(`${side === 'left' ? 'Sol' : 'Sağ'} kök klasör okunamadı: ${root}. ${detail.message} ${detail.suggestion}`)
+      throw new Error(`${side === 'left' ? 'Left' : 'Right'} root folder could not be read: ${root}. ${detail.message} ${detail.suggestion}`)
     }
     return entries
   }
   const a = await scan(roots.left, 'left'), b = await scan(roots.right, 'right'), rows: Row[] = []
-  for (const relative of [...new Set([...a.keys(), ...b.keys()])].sort((a, b) => a.localeCompare(b, 'tr'))) {
+  for (const relative of [...new Set([...a.keys(), ...b.keys()])].sort((a, b) => a.localeCompare(b, 'en'))) {
     checkCancelled(signal)
     let l = a.get(relative), r = b.get(relative)
     if (sha256 && l?.kind === 'file' && r?.kind === 'file') {
-      progress({ phase: 'SHA-256 hesaplanıyor', path: relative, count: ++count })
+      progress({ phase: 'Calculating SHA-256', path: relative, count: ++count })
       // Any hash failure aborts comparison; unreadable content must never appear equal.
       const beforeL = await fs.stat(await safePath(roots.left, relative)), beforeR = await fs.stat(await safePath(roots.right, relative))
       for (const side of ['left', 'right'] as const) {
@@ -58,11 +58,11 @@ export async function compareDirectories(left: string, right: string, sha256: bo
         catch (error) {
           if (signal.aborted) throw error
           const detail = explainReadError(error)
-          throw new Error(`SHA-256 karşılaştırması durduruldu. ${side === 'left' ? 'Sol' : 'Sağ'} dosya okunamadı: ${path.join(roots[side], relative)}. ${detail.message} ${detail.suggestion} Dosyanın aynı veya farklı olduğu doğrulanamadı.`)
+          throw new Error(`SHA-256 comparison stopped. ${side === 'left' ? 'Left' : 'Right'} file could not be read: ${path.join(roots[side], relative)}. ${detail.message} ${detail.suggestion} Could not verify whether the file is identical or different.`)
         }
       }
       const afterL = await fs.stat(await safePath(roots.left, relative)), afterR = await fs.stat(await safePath(roots.right, relative))
-      if (beforeL.mtimeMs !== afterL.mtimeMs || beforeL.size !== afterL.size || beforeR.mtimeMs !== afterR.mtimeMs || beforeR.size !== afterR.size) throw new Error(`Karşılaştırma sırasında dosya değişti: ${relative}`)
+      if (beforeL.mtimeMs !== afterL.mtimeMs || beforeL.size !== afterL.size || beforeR.mtimeMs !== afterR.mtimeMs || beforeR.size !== afterR.size) throw new Error(`File changed during comparison: ${relative}`)
     }
     rows.push({ path: relative, left: l, right: r, status: compareEntries(l, r) })
   }

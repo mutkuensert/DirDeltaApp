@@ -1,7 +1,7 @@
 {
   "name": "dirdelta",
   "version": "1.0.0",
-  "description": "İki yönlü klasör karşılaştırma ve SHA-256 doğrulamalı kopyalama",
+  "description": "Bidirectional folder comparison and SHA-256 verified copying",
   "license": "ISC",
   "author": "",
   "type": "commonjs",

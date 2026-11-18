@@ -34,11 +34,11 @@ test('folder selection holds the operation lock until the dialog completes', asy
   const selection = deferred()
   const { session } = fixture({}, { selectFolder: () => selection.promise })
   const pending = session.selectFolder('left')
-  await assert.rejects(session.compare(false), /Devam eden/)
-  await assert.rejects(session.selectFolder('right'), /Devam eden/)
+  await assert.rejects(session.compare(false), /current operation/)
+  await assert.rejects(session.selectFolder('right'), /current operation/)
   selection.resolve('/left')
   assert.equal(await pending, '/left')
-  await assert.rejects(session.compare(false), /iki klasör/)
+  await assert.rejects(session.compare(false), /two folders/)
 })
 
 test('copy approval authorizes overwrite and invalidates the comparison', async () => {
@@ -46,7 +46,7 @@ test('copy approval authorizes overwrite and invalidates the comparison', async 
   await prepare(session)
   assert.deepEqual(await session.copy('left', ['file']), { copied: 1, cancelled: false })
   assert.equal(calls[0][3], true)
-  await assert.rejects(session.copy('left', ['file']), /karşılaştırın/)
+  await assert.rejects(session.copy('left', ['file']), /Compare the folders/)
 })
 
 test('declining overwrite never executes a copy', async () => {
@@ -79,14 +79,14 @@ test('disposing a session discards late comparison results and rejects further w
   session.dispose()
   result.resolve(comparison)
   await assert.rejects(pending, { name: 'AbortError' })
-  await assert.rejects(session.compare(false), /Pencere kapatıldı/)
-  await assert.rejects(session.reveal('left', 'file'), /karşılaştırma/)
+  await assert.rejects(session.compare(false), /window has been closed/)
+  await assert.rejects(session.reveal('left', 'file'), /comparison/)
 })
 
 test('failed copy releases the lock and requires a new comparison', async () => {
   const { session } = fixture({ executeCopy: async () => { throw new Error('disk unavailable') } })
   await prepare(session)
   await assert.rejects(session.copy('left', ['file']), /disk unavailable/)
-  await assert.rejects(session.copy('left', ['file']), /karşılaştırın/)
+  await assert.rejects(session.copy('left', ['file']), /Compare the folders/)
   await session.compare(false)
 })

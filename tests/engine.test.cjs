@@ -27,7 +27,7 @@ test('fast mode reports missing, unverified, different sizes, empty directories 
   assert.equal(statuses['.hidden'], 'left-only'); assert.equal(statuses.empty, 'left-only')
   assert.equal(statuses['right.txt'], 'right-only'); assert.equal(statuses['same-size'], 'unchecked')
   assert.equal(statuses.size, 'different'); assert.equal(statuses.conflict, 'conflict')
-  await assert.rejects(planCopy(result, 'left', ['conflict']), /çakışması/)
+  await assert.rejects(planCopy(result, 'left', ['conflict']), /conflict/)
 })
 test('SHA-256 detects same-sized content differences and identifies equal content', async t => {
   const f = await fixture(t)
@@ -65,11 +65,11 @@ test('never overwrites without approval and supports approved replacement', asyn
 test('rejects nested roots, traversal and symlink writes, and skips symlinks during scan', async t => {
   const f = await fixture(t)
   await fs.mkdir(path.join(f.left, 'nested'))
-  await assert.rejects(validateRoots(f.left, path.join(f.left, 'nested')), /iç içe/)
-  await assert.rejects(validateRoots(f.left, f.left), /Aynı/)
-  await assert.rejects(safePath(f.left, '../escape'), /Geçersiz/)
+  await assert.rejects(validateRoots(f.left, path.join(f.left, 'nested')), /nested/)
+  await assert.rejects(validateRoots(f.left, f.left), /same folder/)
+  await assert.rejects(safePath(f.left, '../escape'), /Invalid/)
   await fs.symlink(f.right, path.join(f.left, 'link'), 'dir')
-  await assert.rejects(safePath(f.left, 'link/file'), /Sembolik/)
+  await assert.rejects(safePath(f.left, 'link/file'), /symbolic/)
   const result = await compareDirectories(f.left, f.right, false, f.signal)
   assert.equal(result.warnings.length, 1)
   assert.ok(!result.rows.some(r => r.path === 'link'))
@@ -90,7 +90,7 @@ test('rejects source changes made after planning', async t => {
   const result = await compareDirectories(f.left, f.right, false, f.signal)
   const plan = await planCopy(result, 'left', ['file'])
   await fs.writeFile(path.join(f.left, 'file'), 'changed content')
-  await assert.rejects(executeCopy(result, 'left', plan, false, f.signal), /Kaynak değişti/)
+  await assert.rejects(executeCopy(result, 'left', plan, false, f.signal), /Source changed/)
   assert.deepEqual(await fs.readdir(f.right), [])
 })
 
@@ -104,8 +104,8 @@ test('skipped symlinks have an explicit reason, side, path and guidance', async 
   assert.equal(warning.reason, 'symlink')
   assert.equal(warning.side, 'left')
   assert.equal(warning.path, path.join(f.left, 'shortcut'))
-  assert.match(warning.message, /Sembolik bağlantı/)
-  assert.match(warning.suggestion, /gerçek klasörü/)
+  assert.match(warning.message, /Symbolic link/)
+  assert.match(warning.suggestion, /actual folder/)
 })
 test('read failures are distinct from intentional exclusions and preserve error codes', async t => {
   const f = await fixture(t)
@@ -122,13 +122,13 @@ test('read failures are distinct from intentional exclusions and preserve error 
   assert.equal(warning.kind, 'read-error')
   assert.equal(warning.side, 'right')
   assert.equal(warning.code, 'EACCES')
-  assert.match(warning.message, /erişim izni yok/)
-  assert.match(warning.suggestion, /okuma izinlerini/)
+  assert.match(warning.message, /Access to this item is denied/)
+  assert.match(warning.suggestion, /read permissions/)
   assert.ok(!result.rows.some(row => row.path.endsWith('hidden.txt')))
 })
 test('read-error explanations distinguish missing paths, disk errors and disconnections', () => {
   const { explainReadError } = require('../dist/engine.js')
-  for (const [code, expected] of [['ENOENT', /silinmiş/], ['EIO', /Depolama/], ['ENODEV', /Disk veya ağ/], ['ETIMEDOUT', /Disk veya ağ/], ['EBUSY', /kullanımda/], ['EMFILE', /dosya sınırına/]]) {
+  for (const [code, expected] of [['ENOENT', /deleted/], ['EIO', /storage/], ['ENODEV', /drive or network/], ['ETIMEDOUT', /drive or network/], ['EBUSY', /in use/], ['EMFILE', /limit for open files/]]) {
     const detail = explainReadError(Object.assign(new Error('low-level message'), { code }))
     assert.match(detail.message, expected)
     assert.ok(detail.suggestion.length > 0)
@@ -144,10 +144,10 @@ test('SHA-256 read failures stop comparison and identify the file and next actio
     return original(...args)
   })
   await assert.rejects(compareDirectories(f.left, f.right, true, f.signal), error => {
-    assert.match(error.message, /SHA-256 karşılaştırması durduruldu/)
+    assert.match(error.message, /SHA-256 comparison stopped/)
     assert.ok(error.message.includes(path.join(f.left, 'file')))
-    assert.match(error.message, /Depolama aygıtı/)
-    assert.match(error.message, /doğrulanamadı/)
+    assert.match(error.message, /storage device/)
+    assert.match(error.message, /Could not verify/)
     return true
   })
 })
