@@ -1,6 +1,13 @@
 # DirDelta Desktop
 
-A bidirectional folder comparison app built with Electron and TypeScript. The interface is in English, and all operations run locally.
+A bidirectional folder comparison app built with Electron and TypeScript. All operations run locally.
+
+## Screenshot
+
+<div style="text-align: center;">
+ <img src="docs/screenshot.png" width="450" alt="DirDelta Screenshot"/>
+</div>
+
 
 ## Getting started
 
