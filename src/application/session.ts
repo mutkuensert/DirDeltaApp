@@ -10,20 +10,6 @@ export class DirectorySession {
 
   constructor(private readonly directories: DirectoryOperations, private readonly interaction: SessionInteraction) {}
 
-  private async run<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T> {
-    if (this.disposed) throw new Error('Pencere kapatıldı.')
-    if (this.operation) throw new Error('Devam eden işlemin bitmesini bekleyin.')
-    const operation = new AbortController()
-    this.operation = operation
-    try {
-      const result = await action(operation.signal)
-      operation.signal.throwIfAborted()
-      return result
-    } finally {
-      this.operation = undefined
-    }
-  }
-
   selectFolder(side: Side) {
     return this.run(async signal => {
       const folder = await this.interaction.selectFolder(side, this.roots[side])
@@ -83,5 +69,19 @@ export class DirectorySession {
     this.cancel()
     this.comparison = undefined
     this.roots = {}
+  }
+
+  private async run<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    if (this.disposed) throw new Error('Pencere kapatıldı.')
+    if (this.operation) throw new Error('Devam eden işlemin bitmesini bekleyin.')
+    const operation = new AbortController()
+    this.operation = operation
+    try {
+      const result = await action(operation.signal)
+      operation.signal.throwIfAborted()
+      return result
+    } finally {
+      this.operation = undefined
+    }
   }
 }
