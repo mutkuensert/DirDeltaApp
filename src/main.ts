@@ -13,6 +13,7 @@ function createWindow() {
       contextIsolation: true, nodeIntegration: false, sandbox: true
     }
   })
+  const progressIntervalMilliseconds = 60
   let lastProgress = 0
   const session = new DirectorySession(directories, {
     async selectFolder(side, current) {
@@ -33,7 +34,7 @@ function createWindow() {
     },
     reveal: absolute => shell.showItemInFolder(absolute),
     progress(value) {
-      if (Date.now() - lastProgress < 60 || window.isDestroyed()) return
+      if (Date.now() - lastProgress < progressIntervalMilliseconds || window.isDestroyed()) return
       lastProgress = Date.now()
       window.webContents.send('progress', value)
     }
