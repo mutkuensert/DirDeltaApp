@@ -1,7 +1,19 @@
 // Shared browser-side presentation model. Full comparison rows remain intact for copying.
 namespace DirDeltaTree {
   type Row = import('./types').Row
-  export interface Item { row: Row; depth: number; grouped: boolean; open: boolean; descendants: number }
+  export interface Item {
+    readonly row: Row
+    readonly depth: number
+    readonly grouped: boolean
+    readonly open: boolean
+    readonly descendants: number
+  }
+  interface DescendantSummary {
+    count: number
+    left: boolean
+    right: boolean
+    different: boolean
+  }
   export function missingPaths(rows: readonly Row[], side: import('./types').Side, separator: string): string[] {
     const missing = rows.filter(row => row.status === `${side}-only`)
     const selected = new Set(missing.map(row => row.path))
@@ -17,20 +29,8 @@ namespace DirDeltaTree {
   }
   export function create(rows: readonly Row[], separator: string) {
     const byPath = new Map(rows.map(row => [row.path, row]))
-    const children = new Map<string, Row[]>()
-    const summaries = new Map<string, { count: number; left: boolean; right: boolean; different: boolean }>()
     const parent = (value: string) => value.includes(separator) ? value.slice(0, value.lastIndexOf(separator)) : ''
-    for (const row of rows) {
-      const container = parent(row.path)
-      const siblings = children.get(container) ?? []
-      siblings.push(row); children.set(container, siblings)
-      for (let ancestor = container; ancestor; ancestor = parent(ancestor)) {
-        const summary = summaries.get(ancestor) ?? { count: 0, left: false, right: false, different: false }
-        summary.count++; summary.left ||= Boolean(row.left); summary.right ||= Boolean(row.right)
-        summary.different ||= row.status !== 'same' && row.status !== 'unchecked'
-        summaries.set(ancestor, summary)
-      }
-    }
+    const { children, summaries } = indexDescendants(rows, parent)
     const hiddenItems = new Set(rows.filter(row =>
       row.path.split(separator).some(component => component.startsWith('.'))
     ).map(row => row.path))
@@ -73,5 +73,22 @@ namespace DirDeltaTree {
       },
       has: (relative: string) => byPath.has(relative)
     }
+  }
+
+  function indexDescendants(rows: readonly Row[], parent: (path: string) => string) {
+    const children = new Map<string, Row[]>()
+    const summaries = new Map<string, DescendantSummary>()
+    for (const row of rows) {
+      const container = parent(row.path)
+      const siblings = children.get(container) ?? []
+      siblings.push(row); children.set(container, siblings)
+      for (let ancestor = container; ancestor; ancestor = parent(ancestor)) {
+        const summary = summaries.get(ancestor) ?? { count: 0, left: false, right: false, different: false }
+        summary.count++; summary.left ||= Boolean(row.left); summary.right ||= Boolean(row.right)
+        summary.different ||= row.status !== 'same' && row.status !== 'unchecked'
+        summaries.set(ancestor, summary)
+      }
+    }
+    return { children, summaries }
   }
 }
